@@ -1,4 +1,4 @@
-#include "esb.h"
+#include "kernel.h"
 #include "trace.h"
 #include <fstream>
 #include <regex>
@@ -6,7 +6,7 @@
 #include <list>
 
 using namespace std;
-using namespace Core;
+using namespace Fiber;
 
 static inline string implode_config_path(const list<string>&& path,const string&& valname=string()) {
 	string result;
@@ -25,7 +25,7 @@ static inline string implode_config_path(const list<string>&& path,const string&
 	return result;
 }
 
-void ESB::LoadConfig(const std::string&& configFileName, unordered_map<string, pair<list<string>, unordered_map<string, string>>>&& config) {
+void Kernel::LoadConfig(const std::string&& configFileName, unordered_map<string, pair<list<string>, unordered_map<string, string>>>&& config) {
 
 	static const std::regex re_config_section(R"(^\s*(\[+)\s*(.*?)\s*\]+)");
 	static const std::regex re_config_propety(R"(^\s*([\w\-:]+)\s*=\s*(?:("|'|)(.*?)\2)\s*$)");
@@ -92,18 +92,18 @@ void ESB::LoadConfig(const std::string&& configFileName, unordered_map<string, p
 
 }
 
-const char* ESB::GetConfigValue(const char* propname, const char* propdefault) {
+const char* Kernel::GetConfigValue(const char* propname, const char* propdefault) {
 	return nullptr;
 }
 
-const char* ESB::GetProgramName() {
+const char* Kernel::GetProgramName() {
 	return programName.c_str();
 }
 
-const char* ESB::GetProgramDir() {
+const char* Kernel::GetProgramDir() {
 	return programDir.c_str();
 }
 
-const char* ESB::GetProgramCurrentDir() {
+const char* Kernel::GetProgramCurrentDir() {
 	return programWorkDir.c_str();
 }

@@ -87,13 +87,16 @@
     <ClCompile Include="main\run.cpp" />
     <ClCompile Include="kernel.cpp" />
     <ClCompile Include="mt\threadpool.cpp" />
-    <ClCompile Include="server\http.cpp" />
+    <ClCompile Include="server\pipeline.cpp" />
+    <ClCompile Include="tests\threadpool.test.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="main\esb.h" />
+    <ClInclude Include="main\kernel.h" />
     <ClInclude Include="main\impl\cfgimpl.h" />
     <ClInclude Include="mt\threadpool.h" />
-    <ClInclude Include="server\http.h" />
+    <ClInclude Include="server\pipeline.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="fiber.config.sample">

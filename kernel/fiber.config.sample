@@ -1,11 +1,16 @@
 [fiber]
 	[[server]]
-		listen = eth0:8080
-		query-limit = 1M # 0 - unlimit
-		transport = http
-		core =
+		[[[http]]]
+			listen = eth0:8080
+			query-limit = 1M # 0 - unlimit
+		
+		[[[websocket]]]
+			listen = eth0:8081
+			query-limit = 1M # 0 - unlimit
+		
 		pool-workers = 10
 		pool-cores = 2-12
+
 	[[mq]]
 		modules_dir = /home/irokez/projects/NavekFiber/bin/x64/Debug/
 		[[[sync]]]

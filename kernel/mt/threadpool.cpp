@@ -3,9 +3,9 @@
 #include <utils/transform.h>
 #include <unordered_set>
 #include <coreexcept.h>
-#include <csignal>
 #include <trace.h>
-using namespace Core;
+
+using namespace Kernel;
 
 struct CvtStringToInt {
 	inline size_t operator ()(const std::string& from) const { return std::stoul(from); }

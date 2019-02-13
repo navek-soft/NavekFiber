@@ -4,7 +4,7 @@
 #include <string>
 #include <list>
 
-namespace Core {
+namespace Fiber {
 	using namespace std;
 	class ConfigImpl : public Dom::Client::Embedded<ConfigImpl,IConfig> {
 		const unordered_map<string, pair<list<string>, unordered_map<string, string>>>&& configValues;

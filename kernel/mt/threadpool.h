@@ -11,7 +11,7 @@
 #include <stdexcept>
 #include <interface/IThreadPool.h>
 
-namespace Core {
+namespace Kernel {
 	using namespace std;
 	class ThreadPool {
 	private:
@@ -38,8 +38,6 @@ namespace Core {
 		void GetState(size_t& NumWorkers, size_t& NumAwaitingTasks, size_t& NumBusy);
 
 		void Enqueue(Dom::IUnknown* pThreadJob);
-
-		void Async(Dom::IUnknown* pThreadJob);
 
 		template<class FN, class... Args>
 		auto Enqueue(FN&& f, Args&&... args) -> std::future<typename std::result_of<FN(Args...)>::type> {

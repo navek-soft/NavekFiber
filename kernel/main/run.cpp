@@ -1,4 +1,4 @@
-#include "esb.h"
+#include "kernel.h"
 #include "trace.h"
 #include <sys/cmdline.h>
 #include <sys/path.h>
@@ -7,7 +7,7 @@
 #include "impl/cfgimpl.h"
 
 using namespace std;
-using namespace Core;
+using namespace Fiber;
 
 
 static inline sys::cmdline initCmdLine(int argc, char* argv[], string& programDir,string& programWorkDir,string& programName) {
@@ -31,14 +31,14 @@ static inline sys::cmdline initCmdLine(int argc, char* argv[], string& programDi
 	return cmd;
 }
 
-ESB::ESB() { ; }
+Kernel::Kernel() { ; }
 
-ESB::~ESB() { ; }
+Kernel::~Kernel() { ; }
 
 
-void ESB::Run(int argc, char* argv[]) {
+void Kernel::Run(int argc, char* argv[]) {
 	
-	/* Startup ESB */
+	/* Startup Kernel */
 	{
 		try {
 			using cconfig = unordered_map<string, pair<list<string>, unordered_map<string, string>>>;
