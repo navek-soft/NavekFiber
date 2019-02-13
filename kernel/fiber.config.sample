@@ -1,0 +1,43 @@
+[fiber]
+	[[server]]
+		listen = eth0:8080
+		query-limit = 1M # 0 - unlimit
+		transport = http
+		core =
+		pool-workers = 10
+		pool-cores = 2-12
+	[[mq]]
+		modules_dir = /home/irokez/projects/NavekFiber/bin/x64/Debug/
+		[[[sync]]]
+			class = SyncQueue
+			module = lib-mq-sync.so
+		[[[async]]]
+			class = async
+			module = lib-mq-async.so
+		[[[simple]]]
+			class = simple
+			module = lib-mq-simple.so
+		[[[proxy]]]
+			class = proxy
+			module = lib-mq-proxy.so
+
+	[[sapi]]
+		modules_dir = /home/irokez/projects/NavekFiber/bin/x64/Debug/
+		[[[php]]]
+			class = PhpEngine
+			module = lib-sapi-php.so
+		[[[python]]]
+			class = PythonEngine
+			module = lib-sapi-python.so
+
+[channel]
+	[[sms-gate]]
+		channel-endpoint = sync://sms-gate/*/ # sync, async, simple, proxy
+#		channel-sapi = php://scripts/sapi/sms-gate.php	 # php:// python:// lua:// | mysql:// pgsql:// json:// http:// ws://
+		channel-sapi = python://scripts/sapi/sms-gate.py	 # php:// python:// lua:// | mysql:// pgsql:// json:// http:// ws://
+		channel-fail-tolerance = none # none | transaction 
+		queue-limit-tasks = 3
+		queue-limit-size = 0 # 0-no limit
+		queue-time-period = 1m
+		queue-time-limit = period # | none
+		php-config = /etc/php-embed.ini
