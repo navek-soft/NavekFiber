@@ -50,6 +50,7 @@ void ESB::Run(int argc, char* argv[]) {
 				LoadConfig(cmd("config", "fiber.config"), move(config_data));
 
 				ConfigImpl config(move(config_data), move(programDir), move(programWorkDir), move(programName));
+				config.AddRef();
 
 				auto&& server = config["fiber"]["server"];
 				auto&& mq = config["fiber"]["mq"];

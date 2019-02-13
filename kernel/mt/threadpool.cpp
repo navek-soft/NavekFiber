@@ -87,10 +87,15 @@ void ThreadPool::GetState(size_t& NumWorkers, size_t& NumAwaitingTasks, size_t& 
 void ThreadPool::Enqueue(Dom::IUnknown* pThreadJob) {
 	pThreadJob->AddRef();
 	Enqueue([](Dom::IUnknown* pThreadJob,const atomic_bool& Yet) {
-		Dom::Interface<IThreadJob> job(pThreadJob);
-		job->Exec(Yet);
+		IThreadJob* job = nullptr;
+		if (pThreadJob->QueryInterface(IThreadJob::guid(), (void**)&job)) {
+			job->Exec(Yet);
+			job->Release();
+		}
+		else {
+			trace("Interface `IThreadJob` not implemnted");
+		}
 		job->Release();
-		return true;
 	}, pThreadJob, ref(PoolYet));
 }
 

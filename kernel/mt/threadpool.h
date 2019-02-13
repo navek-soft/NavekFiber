@@ -27,8 +27,8 @@ namespace Core {
 		mutex						PoolQueueSync;
 		condition_variable			PoolCondition;
 		vector<size_t>				PoolWorkersBinding;
-		inline void CheckResize(size_t NumWorker, size_t NumTasks);
-		inline void Hire(size_t NumWorker, WorkerType Type);
+		void CheckResize(size_t NumWorker, size_t NumTasks);
+		void Hire(size_t NumWorker, WorkerType Type);
 	public:
 		ThreadPool(const string& InitialWorkers, const string& MaxWorkers,const string& CoreBinding = "1-2", const string& ExcludeBinding = "");
 		~ThreadPool();

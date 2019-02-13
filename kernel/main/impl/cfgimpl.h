@@ -6,7 +6,7 @@
 
 namespace Core {
 	using namespace std;
-	class ConfigImpl : Dom::Client::Embedded<IConfig> {
+	class ConfigImpl : public Dom::Client::Embedded<ConfigImpl,IConfig> {
 		const unordered_map<string, pair<list<string>, unordered_map<string, string>>>&& configValues;
 		const string &&progDir, &&progWorkDir, &&progName;
 		string space;
