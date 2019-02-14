@@ -1,9 +1,10 @@
-# Navek Fiber (Enterprise Service Bus)
+# Navek Fiber (Enterprise Integration Bus)
 
 NAVEK FIBER is a high-performance enterprise integration bus. The main components of the NAVEK FIBER CORE are:
 - FiberBUS - integration bus core
 - FiberQUEUE - external modules that implement the functionality of message queues or specific functions
 - FiberSAPI - connectors to programming languages, data warehouses etc.
+- FiberGATE - load balancing and proxy features
 
 Main features:
 - fast deployment
