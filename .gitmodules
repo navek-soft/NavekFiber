@@ -1,0 +1,3 @@
+[submodule "lib/dom"]
+	path = lib/dom
+	url = https://github.com/yakubouski/dom.git
