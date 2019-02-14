@@ -43,7 +43,7 @@ namespace utils {
 		return std::string(buf.get(), buf.get() + size - 1);
 	}
 
-	static std::vector<std::string> explode(const std::string&& delimiter, std::string& string, ssize_t limit = -1) {
+	static std::vector<std::string> explode(const std::string&& delimiter, const std::string& string, ssize_t limit = -1) {
 		size_t start = 0;
 		size_t end = string.find(delimiter);
 		std::vector<std::string> list;

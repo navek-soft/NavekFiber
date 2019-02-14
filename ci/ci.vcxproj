@@ -79,6 +79,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>..\bin\$(Configuration)\</OutDir>
     <RemoteProjectDir>$(RemoteRootDir)/$(ProjectName)</RemoteProjectDir>
+    <NMakeIncludeSearchPath>%(ClCompile.AdditionalIncludeDirectories)</NMakeIncludeSearchPath>
   </PropertyGroup>
   <ItemGroup>
     <ClInclude Include="coreexcept.h" />
@@ -91,6 +92,8 @@
     <ClInclude Include="trace.h" />
     <ClInclude Include="traits\iterable.h" />
     <ClInclude Include="traits\trait.h" />
+    <ClInclude Include="utils\ascii.h" />
+    <ClInclude Include="utils\findmatch.h" />
     <ClInclude Include="utils\transform.h" />
   </ItemGroup>
   <ItemGroup>

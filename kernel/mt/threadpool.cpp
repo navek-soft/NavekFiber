@@ -5,7 +5,7 @@
 #include <coreexcept.h>
 #include <trace.h>
 
-using namespace Kernel;
+using namespace Fiber;
 
 struct CvtStringToInt {
 	inline size_t operator ()(const std::string& from) const { return std::stoul(from); }

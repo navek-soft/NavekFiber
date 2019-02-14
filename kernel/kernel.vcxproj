@@ -43,6 +43,7 @@
     <ApplicationTypeRevision>1.0</ApplicationTypeRevision>
     <TargetLinuxPlatform>Generic</TargetLinuxPlatform>
     <LinuxProjectType>{D51BCBC9-82E9-4017-911E-C93873C4EA2B}</LinuxProjectType>
+    <ProjectName>bus</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
@@ -85,9 +86,10 @@
   <ItemGroup>
     <ClCompile Include="main\config.cpp" />
     <ClCompile Include="main\run.cpp" />
-    <ClCompile Include="kernel.cpp" />
+    <ClCompile Include="bus.cpp" />
     <ClCompile Include="mt\threadpool.cpp" />
-    <ClCompile Include="server\pipeline.cpp" />
+    <ClCompile Include="net\impl\httpimpl.cpp" />
+    <ClCompile Include="net\server.cpp" />
     <ClCompile Include="tests\threadpool.test.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
@@ -96,7 +98,12 @@
     <ClInclude Include="main\kernel.h" />
     <ClInclude Include="main\impl\cfgimpl.h" />
     <ClInclude Include="mt\threadpool.h" />
-    <ClInclude Include="server\pipeline.h" />
+    <ClInclude Include="net\impl\bufferimpl.h" />
+    <ClInclude Include="net\impl\httpimpl.h" />
+    <ClInclude Include="net\impl\socketimpl.h" />
+    <ClInclude Include="net\impl\wsimpl.h" />
+    <ClInclude Include="net\impl\zcstringimpl.h" />
+    <ClInclude Include="net\server.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="fiber.config.sample">

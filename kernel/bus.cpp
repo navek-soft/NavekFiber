@@ -4,6 +4,8 @@
 #include <csignal>
 #include <chrono>
 
+#include "net/server.h"
+
 using namespace std::chrono_literals;
 
 static sig_atomic_t raise_signal = 0;
@@ -27,6 +29,17 @@ int main(int argc,char* argv[]) {
 	catch (std::exception& ex) {
 		printf("%s\n",ex.what());
 	}
+
+	Fiber::Server server({ { "pool-workers","10" }, { "pool-cores","2-12" } });
+	
+	server.AddListener("http", ":8080", {});
+	server.AddListener("ws", "eth1:8080", {});
+
+	while (server.Listen() && !raise_signal) {
+		printf("Wait connection\n");
+	}
+
+	return 0;
 
 	Fiber::Kernel core;
 

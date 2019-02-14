@@ -11,7 +11,7 @@
 #include <stdexcept>
 #include <interface/IThreadPool.h>
 
-namespace Kernel {
+namespace Fiber {
 	using namespace std;
 	class ThreadPool {
 	private:
