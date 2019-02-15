@@ -19,7 +19,7 @@ namespace Fiber {
 			return setsockopt(socket, level, optname, (const void*)optval, optlen);
 		}
 
-		static inline int ReadData(int socket,BufferImpl& data,size_t MaxLength = 1048576, size_t PartLength = 8192, int msecTimeout = 5000) {
+		static inline int ReadData(int socket,ReadBufferImpl& data,size_t MaxLength = 1048576, size_t PartLength = 8192, int msecTimeout = 5000) {
 			struct timeval t = { time_t(msecTimeout / 1000),0 };
 
 			if (SetOpt(socket, SOL_SOCKET, SO_RCVTIMEO, t) != 0) {
@@ -27,6 +27,13 @@ namespace Fiber {
 			}
 
 			return data.Read(socket, MaxLength, PartLength);
+		}
+
+		static inline int WriteData(int& socket) {
+		}
+
+		static inline int Close(int& socket) {
+			return close(socket) == 0 ? (socket = 0) : errno;
 		}
 
 		static inline int Open(int& socket,const std::string& device,const std::string& port,const std::string& maxcon="400") {

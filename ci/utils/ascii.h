@@ -1,5 +1,6 @@
 #pragma once
 #include <cinttypes>
+#include <array>
 
 namespace utils {
 	constexpr static uint8_t icase_ascii_table[256] = {
@@ -20,4 +21,11 @@ namespace utils {
 		0xe0 /* */,0xe1 /* */,0xe2 /* */,0xe3 /* */,0xe4 /* */,0xe5 /* */,0xe6 /* */,0xe7 /* */,0xe8 /* */,0xe9 /* */,0xea /* */,0xeb /* */,0xec /* */,0xed /* */,0xee /* */,0xef /* */,
 		0xf0 /* */,0xf1 /* */,0xf2 /* */,0xf3 /* */,0xf4 /* */,0xf5 /* */,0xf6 /* */,0xf7 /* */,0xf8 /* */,0xf9 /* */,0xfa /* */,0xfb /* */,0xfc /* */,0xfd /* */,0xfe /* */,0xff /* */,
 	};
+
+	static const std::array<uint8_t, 256> ascii_mask(const char* character_mask) {
+		std::array<uint8_t, 256> table;
+		table.fill('\0');
+		for (const char* ptr = character_mask; *ptr; table[*ptr] = *ptr; ptr++);
+		return table;
+	}
 }

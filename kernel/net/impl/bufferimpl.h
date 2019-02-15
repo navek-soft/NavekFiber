@@ -10,14 +10,15 @@
 
 namespace Fiber {
 
-	class BufferImpl {
+	class ReadBufferImpl {
 	private:
 		ssize_t									dataLength;
 		std::list<std::pair<uint8_t*, size_t>>	dataParts;
 	public:
-		BufferImpl() : dataLength(0) { ; }
-		~BufferImpl() { 
+		ReadBufferImpl() : dataLength(0) { ; }
+		~ReadBufferImpl() {
 			for (auto&& part : dataParts) {
+				printf("%s(free:%lx)\n", __FUNCTION__, part.first);
 				delete[] part.first;
 			}
 		}
@@ -31,10 +32,10 @@ namespace Fiber {
 
 			return nread < 0 ? errno : 0;
 		}
-		inline bool empty() { return dataLength > 0; }
-		inline ssize_t length() { return dataLength; }
-		inline std::pair<const uint8_t*, const uint8_t*> Head() { auto&& head = dataParts.front(); return { head.first,head.first + head.second }; }
-		inline std::string Content(size_t HeadOffset = 0) {
+		inline bool empty() const { return dataLength > 0; }
+		inline ssize_t length() const { return dataLength; }
+		inline std::pair<const uint8_t*, const uint8_t*> Head() const { auto&& head = dataParts.front(); return { head.first,head.first + head.second }; }
+		inline std::string Content(size_t HeadOffset = 0) const {
 			std::string result;
 			result.resize(dataLength - HeadOffset);
 			size_t offset = 0;
@@ -42,6 +43,34 @@ namespace Fiber {
 				memcpy(result.data() + offset,it->first,it->second);
 			}
 			return result;
+		}
+	};
+
+	class WriteBufferImpl {
+	private:
+		ssize_t										dataLength;
+		std::list<std::pair<const char*,size_t>>	dataParts;
+	public:
+		WriteBufferImpl() : dataLength(0) { ; }
+		~WriteBufferImpl() { ; }
+		inline ssize_t Write(int fd) noexcept {
+			ssize_t writen = 0;
+			for (auto&& part : dataParts) {
+				writen += send(fd, part.first, part.second, 0);
+			}
+			return writen;
+		}
+
+		inline WriteBufferImpl& Emplace(std::string&& data) {
+			dataLength += data.size();
+			dataParts.emplace_back(data.c_str(), data.size());
+			return *this;
+		}
+
+		inline WriteBufferImpl& Emplace(const std::string& data) {
+			dataLength += data.size();
+			dataParts.emplace_back(data.c_str(), data.size());
+			return *this;
 		}
 	};
 }

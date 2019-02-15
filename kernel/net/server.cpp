@@ -40,8 +40,8 @@ bool Server::AddListener(const string& proto, const string& listen, const unorde
 		}
 
 		if (r.result() == 1 /* http */) {
-			conHandlers.emplace(so_server, [options](int socket,sockaddr_storage& sa, socklen_t len) -> shared_ptr<Handler> {
-				return shared_ptr<Handler>(new Proto::HttpImpl(socket, sa, len));
+			conHandlers.emplace(so_server, [options](msgid mid,int socket,sockaddr_storage& sa, socklen_t len) -> shared_ptr<Handler> {
+				return shared_ptr<Handler>(new Proto::HttpImpl(mid,socket, sa, len));
 			});
 		}
 		else {
@@ -74,7 +74,7 @@ bool Server::Listen(size_t timeout_msec) {
 					socklen_t len = sizeof(sa);
 					int so_client = accept(conFd[s].fd, (sockaddr*)&sa, &len);
 					if (so_client > 0) {
-						conHandlers[conFd[s].fd](so_client, sa,len);
+						conHandlers[conFd[s].fd](getMsgId(move(msgIndex)),so_client, sa,len);
 						continue;
 					}
 					else if (so_client < 0) {

@@ -20,7 +20,7 @@ namespace Fiber {
 			virtual ~Handler() { ; }
 		};
 	private:
-		using callback = function<shared_ptr<Handler>(int, sockaddr_storage&,socklen_t)>;
+		using callback = function<shared_ptr<Handler>(msgid, int, sockaddr_storage&,socklen_t)>;
 		atomic_uint_fast32_t			msgIndex;
 		unordered_map<int, callback>	conHandlers;
 		vector<struct pollfd>			conFd;

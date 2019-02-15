@@ -19,9 +19,7 @@ namespace utils {
 	};
 
 
-	template<typename ... needle>
-	inline match_result match(const uint8_t* haystack_from, const uint8_t* haystack_to, needle&& ... values) {
-		static const uint8_t* needle_values[] = { (const uint8_t*)values ... };
+	inline match_result match(const uint8_t* haystack_from, const uint8_t* haystack_to, const uint8_t* needle_values[]) {
 		const size_t needle_size = sizeof(needle_values) / sizeof(const uint8_t*);
 		const uint8_t*  needle_it = (const uint8_t*)needle_values[0];
 		const uint8_t*	 haystack_it = haystack_from;
@@ -49,13 +47,17 @@ namespace utils {
 	}
 
 	template<typename ... needle>
+	inline match_result match(const uint8_t* haystack_from, const uint8_t* haystack_to, needle&& ... values) {
+		static const uint8_t* needle_values[] = { (const uint8_t*)values ... };
+		return match(const uint8_t* haystack_from, const uint8_t* haystack_to, needle_values);
+	}
+
+	template<typename ... needle>
 	inline match_result match(const string& haystack, needle&& ... values) {
 		return match((const uint8_t*)(&haystack.front()), (const uint8_t*)(&haystack.back() + 1), std::forward<needle>(values)...);
 	}
 
-	template<typename ... needle>
-	inline match_result find(const uint8_t* haystack_from, const uint8_t* haystack_to, needle&& ... values) {
-		static const uint8_t* needle_values[] = { (const uint8_t*)values ... };
+	inline match_result find(const uint8_t* haystack_from, const uint8_t* haystack_to, const uint8_t* needle_values[]) {
 		const size_t needle_size = sizeof(needle_values) / sizeof(const uint8_t*);
 		const uint8_t* needle_it = needle_values[0];
 		const uint8_t*	 haystack_it = haystack_from;
@@ -75,6 +77,11 @@ namespace utils {
 			needle_index++;
 		}
 		return {};
+	}
+	template<typename ... needle>
+	inline match_result find(const uint8_t* haystack_from, const uint8_t* haystack_to, needle&& ... values) {
+		static const uint8_t* needle_values[] = { (const uint8_t*)values ... };
+		return find(haystack_from, haystack_to, needle_values);
 	}
 
 	inline match_result find_char(const uint8_t* haystack_from, const uint8_t* haystack_to, const char* charlist) {

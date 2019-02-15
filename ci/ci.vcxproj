@@ -90,10 +90,9 @@
     <ClInclude Include="sys\path.h" />
     <ClInclude Include="sys\signals.h" />
     <ClInclude Include="trace.h" />
-    <ClInclude Include="traits\iterable.h" />
-    <ClInclude Include="traits\trait.h" />
     <ClInclude Include="utils\ascii.h" />
     <ClInclude Include="utils\findmatch.h" />
+    <ClInclude Include="utils\timestamp.h" />
     <ClInclude Include="utils\transform.h" />
   </ItemGroup>
   <ItemGroup>

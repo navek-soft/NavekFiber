@@ -100,10 +100,12 @@
     <ClInclude Include="mt\threadpool.h" />
     <ClInclude Include="net\impl\bufferimpl.h" />
     <ClInclude Include="net\impl\httpimpl.h" />
+    <ClInclude Include="net\impl\protoimpl.h" />
     <ClInclude Include="net\impl\socketimpl.h" />
     <ClInclude Include="net\impl\wsimpl.h" />
     <ClInclude Include="net\impl\zcstringimpl.h" />
     <ClInclude Include="net\server.h" />
+    <ClInclude Include="version.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="fiber.config.sample">
