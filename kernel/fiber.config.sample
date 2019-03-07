@@ -2,14 +2,16 @@
 	[[server]]
 		[[[http]]]
 			listen = eth0:8080
-			query-limit = 1M # 0 - unlimit
-		
+			query-limit = 1M # 0 - unlimit, default 1048576
+			header-limit = 4K # 0 - unlimit, default 8192
 		[[[websocket]]]
 			listen = eth0:8081
 			query-limit = 1M # 0 - unlimit
-		
+
 		pool-workers = 10
+		pool-max = 50
 		pool-cores = 2-12
+		pool-exclude = 3,4
 
 	[[mq]]
 		modules_dir = /home/irokez/projects/NavekFiber/bin/x64/Debug/

@@ -7,7 +7,6 @@
 namespace utils {
 	using namespace std;
 	
-
 	struct match_result : tuple<size_t, const char*, const char*> {
 	public:
 		match_result(size_t res = 0, const char* b = nullptr, const char* e = nullptr) { get<0>(*this) = res; get<1>(*this) = b;	get<2>(*this) = e; }
@@ -19,8 +18,8 @@ namespace utils {
 	};
 
 
-	inline match_result match(const uint8_t* haystack_from, const uint8_t* haystack_to, const uint8_t* needle_values[]) {
-		const size_t needle_size = sizeof(needle_values) / sizeof(const uint8_t*);
+	inline match_result match_values(const uint8_t* haystack_from, const uint8_t* haystack_to, uint8_t* const needle_values[],const size_t needle_size) {
+		//const size_t needle_size = sizeof(needle_values)/* / sizeof(const uint8_t*)*/;
 		const uint8_t*  needle_it = (const uint8_t*)needle_values[0];
 		const uint8_t*	 haystack_it = haystack_from;
 
@@ -48,8 +47,8 @@ namespace utils {
 
 	template<typename ... needle>
 	inline match_result match(const uint8_t* haystack_from, const uint8_t* haystack_to, needle&& ... values) {
-		static const uint8_t* needle_values[] = { (const uint8_t*)values ... };
-		return match(const uint8_t* haystack_from, const uint8_t* haystack_to, needle_values);
+		static uint8_t* const needle_values[] = { (uint8_t* const)values ... };
+		return match_values(haystack_from, haystack_to, needle_values,sizeof...(values));
 	}
 
 	template<typename ... needle>
@@ -57,8 +56,8 @@ namespace utils {
 		return match((const uint8_t*)(&haystack.front()), (const uint8_t*)(&haystack.back() + 1), std::forward<needle>(values)...);
 	}
 
-	inline match_result find(const uint8_t* haystack_from, const uint8_t* haystack_to, const uint8_t* needle_values[]) {
-		const size_t needle_size = sizeof(needle_values) / sizeof(const uint8_t*);
+	inline match_result find_values(const uint8_t* haystack_from, const uint8_t* haystack_to, uint8_t* const needle_values[], const size_t needle_size) {
+		//const size_t needle_size = sizeof(needle_values) / sizeof(const uint8_t*);
 		const uint8_t* needle_it = needle_values[0];
 		const uint8_t*	 haystack_it = haystack_from;
 
@@ -80,8 +79,8 @@ namespace utils {
 	}
 	template<typename ... needle>
 	inline match_result find(const uint8_t* haystack_from, const uint8_t* haystack_to, needle&& ... values) {
-		static const uint8_t* needle_values[] = { (const uint8_t*)values ... };
-		return find(haystack_from, haystack_to, needle_values);
+		static uint8_t* const needle_values[] = { (uint8_t* const)values ... };
+		return find_values(haystack_from, haystack_to, needle_values,sizeof...(values));
 	}
 
 	inline match_result find_char(const uint8_t* haystack_from, const uint8_t* haystack_to, const char* charlist) {

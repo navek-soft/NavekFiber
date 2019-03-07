@@ -25,7 +25,7 @@ namespace utils {
 	static const std::array<uint8_t, 256> ascii_mask(const char* character_mask) {
 		std::array<uint8_t, 256> table;
 		table.fill('\0');
-		for (const char* ptr = character_mask; *ptr; table[*ptr] = *ptr; ptr++);
+		for (const char* ptr = character_mask; *ptr; table[*ptr] = *ptr, ptr++);
 		return table;
 	}
 }

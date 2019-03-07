@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 #include <list>
+#include <csignal>
 
 namespace Fiber {
 	using namespace std;
@@ -12,6 +13,7 @@ namespace Fiber {
 		string programDir;
 		string programWorkDir;
 		string programName;
+		static sig_atomic_t procSignal;
 	private:
 		void LoadConfig(const std::string&& configFileName, unordered_map<string, pair<list<string>, unordered_map<string, string>>>&& config);
 	public:

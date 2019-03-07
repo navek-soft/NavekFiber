@@ -92,6 +92,7 @@
     <ClInclude Include="trace.h" />
     <ClInclude Include="utils\ascii.h" />
     <ClInclude Include="utils\findmatch.h" />
+    <ClInclude Include="utils\option.h" />
     <ClInclude Include="utils\timestamp.h" />
     <ClInclude Include="utils\transform.h" />
   </ItemGroup>

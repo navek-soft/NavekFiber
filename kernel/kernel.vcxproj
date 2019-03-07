@@ -64,6 +64,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <UseDebugLibraries>false</UseDebugLibraries>
+    <RemoteRootDir>~/projects/$(SolutionName)</RemoteRootDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -83,6 +84,13 @@
     <IncludePath>../ci;../lib/dom/src/dom</IncludePath>
     <AdditionalSourcesToCopyMapping>../lib;../ci;$(AdditionalSourcesToCopyMapping)</AdditionalSourcesToCopyMapping>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>..\bin\$(Configuration)\</OutDir>
+    <TargetName>fiber-$(ProjectName)-$(Platform)</TargetName>
+    <TargetExt />
+    <IncludePath>../ci;../lib/dom/src/dom</IncludePath>
+    <AdditionalSourcesToCopyMapping>../lib;../ci;$(AdditionalSourcesToCopyMapping)</AdditionalSourcesToCopyMapping>
+  </PropertyGroup>
   <ItemGroup>
     <ClCompile Include="main\config.cpp" />
     <ClCompile Include="main\run.cpp" />
@@ -90,15 +98,13 @@
     <ClCompile Include="mt\threadpool.cpp" />
     <ClCompile Include="net\impl\httpimpl.cpp" />
     <ClCompile Include="net\server.cpp" />
-    <ClCompile Include="tests\threadpool.test.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main\kernel.h" />
     <ClInclude Include="main\impl\cfgimpl.h" />
     <ClInclude Include="mt\threadpool.h" />
     <ClInclude Include="net\impl\bufferimpl.h" />
+    <ClInclude Include="net\impl\httpcodes.hpp" />
     <ClInclude Include="net\impl\httpimpl.h" />
     <ClInclude Include="net\impl\protoimpl.h" />
     <ClInclude Include="net\impl\socketimpl.h" />
@@ -114,6 +120,14 @@
     <None Include="README.md" />
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <CppLanguageStandard>c++17</CppLanguageStandard>
+    </ClCompile>
+    <Link>
+      <LibraryDependencies>dl;pthread</LibraryDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <CppLanguageStandard>c++17</CppLanguageStandard>
     </ClCompile>

@@ -33,6 +33,8 @@ namespace Fiber {
 		ThreadPool(const string& InitialWorkers, const string& MaxWorkers,const string& CoreBinding = "1-2", const string& ExcludeBinding = "");
 		~ThreadPool();
 
+		inline const vector<size_t>& BindingCores() const { return PoolWorkersBinding; }
+
 		void Join();
 
 		void GetState(size_t& NumWorkers, size_t& NumAwaitingTasks, size_t& NumBusy);
