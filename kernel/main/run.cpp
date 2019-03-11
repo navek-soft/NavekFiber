@@ -1,44 +1,25 @@
 #include "kernel.h"
 #include "trace.h"
-#include <sys/cmdline.h>
-#include <sys/path.h>
 #include <sys/types.h>
-#include <unistd.h>
 #include "impl/cfgimpl.h"
 #include <csignal>
 #include <execinfo.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "../net/server.h"
-#include "../mt/threadpool.h"
 #include <coreexcept.h>
 #include <utils/option.h>
+#include <string>
+
+#include "init-cmd.hpp"
+#include "init-server.hpp"
+#include "init-threadpool.hpp"
+#include "init-mq.hpp"
+#include "init-sapi.hpp"
 
 using namespace std;
 using namespace Fiber;
 
 sig_atomic_t Kernel::procSignal = 0;
-
-static inline sys::cmdline initCmdLine(int argc, char* argv[], string& programDir,string& programWorkDir,string& programName) {
-
-	using coption = sys::cmdline::option;
-	sys::cmdline cmd;
-
-	string procPathName(argv[0]);
-	programDir.assign(argv[0], procPathName.rfind('/') + 1);
-	programName = procPathName.substr(procPathName.rfind('/') + 1);
-	programWorkDir = sys::cwd();
-
-	cmd.options(argc, argv,
-		coption("config", 'c', 1, nullptr)
-	);
-
-	log_option("Program name","%s (PID: %ld)", programName.c_str(), getpid());
-	log_option("Program directory", "%s", programDir.c_str(), getpid());
-	log_option("Program work directory", "%s", programWorkDir.c_str());
-
-	return cmd;
-}
 
 template<typename ... SIGN>
 static inline void handleSignals(__sighandler_t&& handler, SIGN...signals) {
@@ -54,58 +35,47 @@ Kernel::~Kernel() { ; }
 
 void Kernel::Run(int argc, char* argv[]) {
 	
-	unique_ptr<Server>		netServer;
-	unique_ptr<ThreadPool>	poolWorkers;
-	procSignal = 0;
+	using cconfig = unordered_map<string, pair<list<string>, unordered_map<string, string>>>;
 
+	unique_ptr<Server>		fiberServer;
+	unique_ptr<ThreadPool>	fiberWorkers;
+	unique_ptr<ConfigImpl>	fiberConfig;
+
+	
+	const static unordered_map<int, string> signalNames({ {SIGUSR1,"SIGUSR1"},{SIGUSR2,"SIGUSR2"},{SIGINT,"SIGINT"},{SIGQUIT,"SIGQUIT"},{SIGTERM,"SIGTERM"} });
+
+	procSignal = 0;
 
 	/* Startup Kernel */
 	{
 		try {
-			using cconfig = unordered_map<string, pair<list<string>, unordered_map<string, string>>>;
+			
 			cconfig	config_data;
 			/* Initialize ESB */
 			{
 				sys::cmdline&& cmd = initCmdLine(argc, argv, programDir, programWorkDir, programName);
 
-				LoadConfig(cmd("config", "fiber.config"), move(config_data));
+				initConfig(cmd("config", "fiber.config"), move(config_data));
 
-				ConfigImpl config(move(config_data), move(programDir), move(programWorkDir), move(programName));
-				config.AddRef();
+				fiberConfig = std::unique_ptr<ConfigImpl>(new ConfigImpl(move(config_data), move(programDir), move(programWorkDir), move(programName)));
+				
+				auto&& numMQ = initMQ((*fiberConfig)["fiber"]["mq"],*this, fiberMQModules);
 
-				auto&& mq = config["fiber"]["mq"];
-				auto&& sapi = config["fiber"]["sapi"];
-				/* Initialize server */
-				{
-					auto&& options = config["fiber"]["server"];
-					Server server({ { "pool-workers","10" }, { "pool-cores","2-12" }, { "pool-exclude","3,4" } });
-				}
-				/* Intialize thread pool */
-				{
-					auto&& options = config["fiber"]["server"];
-					poolWorkers = std::unique_ptr<ThreadPool>(new ThreadPool(
-						options.GetConfigValue("pool-workers", "10"), 
-						options.GetConfigValue("pool-max", "100"),
-						options.GetConfigValue("pool-cores", "1-8"),
-						options.GetConfigValue("pool-exclude", "")));
-					{
-						vector<string> coreList;
-						std::for_each(poolWorkers->BindingCores().begin(), poolWorkers->BindingCores().end(), [&coreList](size_t s) {coreList.emplace_back(to_string(s)); });
-						log_option("Server.WorkersCount", "%s", options.GetConfigValue("pool-workers", "10"));
-						log_option("Server.WorkersLimit", "%s", options.GetConfigValue("pool-max", "100"));
-						log_option("Server.WorkersCores", "%s (hardware threads: %ld)", utils::implode(", ", coreList).c_str(), std::thread::hardware_concurrency());
-					}
-				}
+				auto&& numSAPI = initSAPI((*fiberConfig)["fiber"]["sapi"], *this, fiberSAPIModules);
 
-				log_option("SAPI modules directory", "%s", sapi.GetConfigValue("modules_dir", "./"));
-				for (auto it : sapi.GetSections()) {
-					log_option(string("sapi." + it + ".class").c_str(),"%s",sapi.GetConfigValue(string(it+".class").c_str(),"*INVALID"));
+				auto&& numListeners = initServer((*fiberConfig)["fiber"]["server"], fiberServer);
+
+				if (!numMQ || !numListeners) {
+					log_print("<System.Startup.Error> Invalid Fiber.Bus configuration.");
+					exit(-3);
 				}
+				initThreadPool((*fiberConfig)["fiber"]["server"], fiberWorkers);
+
 			}
 		}
 		catch (exception& ex) {
-			log_print("[ %9s:%s ] %s","EXCEPTION","STARTUP",ex.what());
-			throw;
+			log_print("[ %s:%s ] %s", "EXCEPTION", "STARTUP", ex.what());
+			exit(-2);
 		}
 	}
 	/* Main Loop */
@@ -119,23 +89,44 @@ void Kernel::Run(int argc, char* argv[]) {
 			size_t size;
 			size = backtrace(array, 10);
 			log_print("[ SIGSEGV ]");
-			backtrace_symbols_fd(array, size, STDOUT_FILENO);
+			backtrace_symbols_fd(array, (int)size, STDOUT_FILENO);
 			exit(-1);
 		}, SIGSEGV);
 
-		netServer->Listen([&poolWorkers](shared_ptr<Server::CHandler> handler) {
-			poolWorkers->Enqueue([](shared_ptr<Server::CHandler> handler) {
+		auto&& requestHandler = [&fiberWorkers](shared_ptr<Server::CHandler> handler) {
+			fiberWorkers->Enqueue([](shared_ptr<Server::CHandler> handler) {
 				try {
 					handler->Process();
 					handler->Reply(200, nullptr, (const uint8_t*)"test\n", 5, { {"XSample-HEADER","909"} });
 				}
 				catch (RuntimeException& ex) {
-					log_print("[ Server::Listen::RuntimeException ] %s", ex.what());
+					log_print("<Server.Runtime.Exception> %s", ex.what());
 				}
 				catch (std::exception& ex) {
-					log_print("[ Server::Listen::StdException ] %s", ex.what());
+					log_print("<Server.Std.Exception> %s", ex.what());
 				}
 			}, handler);
-		}, 5000);
+		};
+
+		while (fiberServer->Listen(requestHandler, 3000)) {
+			if (procSignal == 0) {
+				continue;
+			}
+			else if (procSignal == SIGUSR1 || procSignal == SIGUSR2) {
+				log_print("[ %s ] Signal recvd.", signalNames.at(procSignal).c_str());
+				procSignal = 0;
+				continue;
+			}
+			else if (procSignal == SIGINT || procSignal == SIGQUIT || procSignal == SIGTERM) {
+				log_print("[ %s ] Signal recvd. Exit now.", signalNames.at(procSignal).c_str());
+				break;
+			}
+		}
+		{
+			fiberServer.release();
+		}
+		{
+			fiberWorkers.release();
+		}
 	}
 }

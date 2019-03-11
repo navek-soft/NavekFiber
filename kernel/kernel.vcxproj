@@ -93,6 +93,8 @@
   </PropertyGroup>
   <ItemGroup>
     <ClCompile Include="main\config.cpp" />
+    <ClCompile Include="main\impl\routerimpl.cpp" />
+    <ClCompile Include="main\kernel.cpp" />
     <ClCompile Include="main\run.cpp" />
     <ClCompile Include="bus.cpp" />
     <ClCompile Include="mt\threadpool.cpp" />
@@ -100,6 +102,14 @@
     <ClCompile Include="net\server.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="main\impl\mqimpl.h" />
+    <ClInclude Include="main\impl\routerimpl.h" />
+    <ClInclude Include="main\impl\zcstringimpl.h" />
+    <ClInclude Include="main\init-cmd.hpp" />
+    <ClInclude Include="main\init-mq.hpp" />
+    <ClInclude Include="main\init-sapi.hpp" />
+    <ClInclude Include="main\init-server.hpp" />
+    <ClInclude Include="main\init-threadpool.hpp" />
     <ClInclude Include="main\kernel.h" />
     <ClInclude Include="main\impl\cfgimpl.h" />
     <ClInclude Include="mt\threadpool.h" />

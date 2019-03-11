@@ -130,7 +130,7 @@ void HttpImpl::Reply(size_t Code, const char* Message, const uint8_t* Content, s
 #ifdef NDEBUG
 	log_print("[ Http::Response:%lu ] %s:%u - %ld (%s) # Thread: %lx", MsgId, Address.toString(), Address.Port, Code, MsgText,std::this_thread::get_id());
 #else
-	log_print("[ Http::Response:%lu ] %s:%u - %ld (%s) # Thread: %lx", MsgId, Address.toString(), Address.Port, Code, MsgText, std::this_thread::get_id());
+	log_print("[ Http::Response:%lu ] %s:%u - %ld (%s)", MsgId, Address.toString(), Address.Port, Code, MsgText);
 #endif // NDEBUG
 
 

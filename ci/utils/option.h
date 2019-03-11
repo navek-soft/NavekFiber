@@ -12,15 +12,18 @@ namespace utils {
 			return it != options.end() ? it->second : def_value;
 		}
 
-		static inline const size_t get_bytes(const std::unordered_map<std::string, std::string>& options, const std::string& option, const size_t& def_value) {
+		static inline const size_t get_bytes(const std::string& value, const size_t& def_value) {
 			static const std::regex re(R"(\s*(\d+)\s*(G|M|K|B)?)");
 			std::smatch match;
-			auto value = get_value(options, option, "");
 			if (!value.empty() && std::regex_search(value, match, re) && match.size() > 1) {
 				auto&& units = match.str(2);
-				return std::stoul(match.str(1)) << (units == "G" ? 30 : (units == "M" ? 20 : (units == "K" ? 10 : 0))) ;
+				return std::stoul(match.str(1)) << (units == "G" ? 30 : (units == "M" ? 20 : (units == "K" ? 10 : 0)));
 			}
 			return def_value;
+		}
+
+		static inline const size_t get_bytes(const std::unordered_map<std::string, std::string>& options, const std::string& option, const size_t& def_value) {
+			return get_bytes(get_value(options, option, ""), def_value);
 		}
 
 		class ExpandIsNotEqual {

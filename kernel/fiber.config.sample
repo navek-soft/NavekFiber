@@ -14,7 +14,7 @@
 		pool-exclude = 3,4
 
 	[[mq]]
-		modules_dir = /home/irokez/projects/NavekFiber/bin/x64/Debug/
+		modules-dir = /home/irokez/projects/NavekFiber/bin/x64/Debug/
 		[[[sync]]]
 			class = SyncQueue
 			module = lib-mq-sync.so
@@ -29,7 +29,7 @@
 			module = lib-mq-proxy.so
 
 	[[sapi]]
-		modules_dir = /home/irokez/projects/NavekFiber/bin/x64/Debug/
+		modules-dir = /home/irokez/projects/NavekFiber/bin/x64/Debug/
 		[[[php]]]
 			class = PhpEngine
 			module = lib-sapi-php.so

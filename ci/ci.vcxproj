@@ -84,7 +84,10 @@
   <ItemGroup>
     <ClInclude Include="coreexcept.h" />
     <ClInclude Include="interface\IConfig.h" />
-    <ClInclude Include="interface\IServer.h" />
+    <ClInclude Include="interface\IMQ.h" />
+    <ClInclude Include="interface\IRequest.h" />
+    <ClInclude Include="interface\IKernel.h" />
+    <ClInclude Include="interface\IString.h" />
     <ClInclude Include="interface\IThreadPool.h" />
     <ClInclude Include="sys\cmdline.h" />
     <ClInclude Include="sys\path.h" />

@@ -39,16 +39,23 @@ namespace Fiber {
 			if (SetOpt(socket, SOL_TCP, TCP_NODELAY, 1) != 0) {
 				trace("Invalid TCP_NODELAY %s(%ld)", strerror(errno), errno);
 			}
+			/*
 			if (SetOpt(socket, SOL_TCP, TCP_FASTOPEN, 5) != 0) {
 				trace("Invalid TCP_FASTOPEN %s(%ld)",strerror(errno), errno);
 			}
-
+			*/
 			if (SetOpt(socket, SOL_SOCKET, SO_REUSEADDR, 1)) {
-				trace("Invalid SO_REUSEADDR %s(%ld)", strerror(errno), errno);
+				auto err = errno;
+				trace("Invalid SO_REUSEADDR %s(%ld)", strerror(err), err);
+				::close(socket);
+				return err;
 			}
 			
 			if (!device.empty() && SetOpt(socket, SOL_SOCKET, SO_BINDTODEVICE, device.c_str(), (socklen_t)device.length()) != 0) {
-				trace("Invalid SO_BINDTODEVICE %s(%ld)", strerror(errno), errno);
+				auto err = errno;
+				trace("Invalid SO_BINDTODEVICE %s(%ld)", strerror(err), err);
+				::close(socket);
+				return err;
 			}
 
 			struct sockaddr_in sin;

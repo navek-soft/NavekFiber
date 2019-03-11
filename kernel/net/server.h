@@ -55,9 +55,9 @@ namespace Fiber {
 		unordered_map<int, callback>	conHandlers;
 		vector<struct pollfd>			conFd;
 	public:
-		Server(const unordered_map<string, string>& options);
+		Server();
 		~Server();
-		bool AddListener(const string& proto, const string& listen, const unordered_map<string, string>& options);
+		int AddListener(const string& proto, const string& listen, const string& query_limit="1048576", const string& header_limit = "8192");
 
 		bool Listen(std::function<void(shared_ptr<CHandler>)>&& callback,size_t timeout_msec = 5000);
 	};

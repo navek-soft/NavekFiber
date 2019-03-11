@@ -22,7 +22,7 @@ inline struct pollfd pollin(int socket) {
 }
 
 
-Server::Server(const unordered_map<string, string>& options) : msgIndex(0) {
+Server::Server() : msgIndex(0) {
 	signal(SIGPIPE, SIG_IGN);
 }
 
@@ -30,36 +30,26 @@ Server::~Server() {
 	;
 }
 
-bool Server::AddListener(const string& proto, const string& listen, const unordered_map<string, string>& options) {
+int Server::AddListener(const string& proto, const string& listen, const string& query_limit, const string& header_limit) {
 	auto&& r = utils::match(proto, "http"/*, "ws"*/);
 	int so_server;
-
+	int err = EPROTONOSUPPORT;
 	if (r.result()) {
 		auto&& bind_params = utils::explode(":", listen, 2);
-		auto err = Socket::Open(so_server, bind_params[0], bind_params[1]);
-		if (err != 0) {
-			trace("Protocol handler `%s` open listen failed. %s(%ld). Listener `%s` will be skipped", proto.c_str(), strerror((int)err), err, listen.c_str());
-			return false;
-		}
-
+		
 		if (r.result() == 1 /* http */) {
-			auto optQueryLimit = utils::option::get_bytes(options, "query-limit", 1048576);
-			auto optHeaderLimit = utils::option::get_bytes(options, "header-limit", 8192);
-			conHandlers.emplace(so_server, [optQueryLimit, optHeaderLimit](msgid mid, int socket, sockaddr_storage& sa, socklen_t len) -> shared_ptr<CHandler> {
-				return shared_ptr<CHandler>(new Proto::HttpImpl(mid, socket, sa, optQueryLimit, optHeaderLimit));
-			});
+			if ((err = Socket::Open(so_server, bind_params[0], bind_params[1])) == 0) {
+				auto optQueryLimit = utils::option::get_bytes(query_limit, 1048576);
+				auto optHeaderLimit = utils::option::get_bytes(header_limit, 8192);
+				conHandlers.emplace(so_server, [optQueryLimit, optHeaderLimit](msgid mid, int socket, sockaddr_storage& sa, socklen_t len) -> shared_ptr<CHandler> {
+					return shared_ptr<CHandler>(new Proto::HttpImpl(mid, socket, sa, optQueryLimit, optHeaderLimit));
+				});
+				conFd.emplace_back(pollin(so_server));
+				return 0;
+			}
 		}
-		else {
-			trace("Protocol handler `%s` not implemented. Listener `%s` will be skipped", proto.c_str(), listen.c_str());
-			return false;
-		}
-
-		conFd.emplace_back(pollin(so_server));
-
-		return true;
 	}
-	trace("Protocol handler `%s` not implemented. Listener `%s` will be skipped", proto.c_str(), listen.c_str());
-	return false;
+	return err;
 }
 
 bool Server::Listen(std::function<void(shared_ptr<CHandler>)>&& callback, size_t timeout_msec) {

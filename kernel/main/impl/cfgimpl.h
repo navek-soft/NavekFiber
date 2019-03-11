@@ -33,7 +33,7 @@ namespace Fiber {
 		}
 		inline operator bool() { return configValues.find(space) != configValues.cend(); }
 
-		inline virtual const char* GetConfigValue(const char* propname, const char* propdefault = "") { 
+		inline virtual const char* GetConfigValue(const char* propname, const char* propdefault = "") const {
 			size_t prop_vpart = string(propname).rfind('.');
 			string path(space), value;
 
@@ -50,13 +50,15 @@ namespace Fiber {
 
 			if (pit != configValues.end()) {
 				auto&& vit = pit->second.second.find(value);
-				return vit->second.c_str();
+				if (vit != pit->second.second.end()) {
+					return vit->second.c_str();
+				}
 			}
 
 			return propdefault;
 		}
-		inline virtual const char* GetProgramName() { return progName.c_str(); }
-		inline virtual const char* GetProgramDir() { return progDir.c_str(); }
-		inline virtual const char* GetProgramCurrentDir() { return progWorkDir.c_str(); }
+		inline virtual const char* GetProgramName() const { return progName.c_str(); }
+		inline virtual const char* GetProgramDir() const { return progDir.c_str(); }
+		inline virtual const char* GetProgramCurrentDir() const { return progWorkDir.c_str(); }
 	};
 }
