@@ -24,10 +24,11 @@ inline struct pollfd pollin(int socket) {
 
 Server::Server() : msgIndex(0) {
 	signal(SIGPIPE, SIG_IGN);
+	dbg_trace("");
 }
 
 Server::~Server() {
-	;
+	dbg_trace("");
 }
 
 int Server::AddListener(const string& proto, const string& listen, const string& query_limit, const string& header_limit) {
@@ -52,10 +53,11 @@ int Server::AddListener(const string& proto, const string& listen, const string&
 	return err;
 }
 
-bool Server::Listen(std::function<void(shared_ptr<CHandler>)>&& callback, size_t timeout_msec) {
+bool Server::Listen(std::function<void(shared_ptr<CHandler>&&)>&& callback, size_t timeout_msec) {
 	auto result = poll(conFd.data(), conFd.size(), (int)timeout_msec);
 	switch (result) {
-	case -1: return false;
+	case -1: 
+		return errno == EINTR;
 	case 0:	return true;
 	default:
 		for (size_t s = 0; result && s < conFd.size(); s++)
@@ -100,7 +102,7 @@ Server::CAddress::CAddress(const sockaddr_storage& sa) {
 	}
 }
 
-const char* Server::CAddress::toString() {
+const char* Server::CAddress::toString() const {
 	static thread_local char buffer[48];
 	if (Version == Ip4) {
 		auto addr = (uint8_t*)(&Address[0]);

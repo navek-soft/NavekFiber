@@ -12,7 +12,7 @@ namespace Fiber {
 
 			virtual void Process() {}
 			virtual void Reply(size_t Code, const char* Message = nullptr, const uint8_t* Content = nullptr, size_t ContentLength = 0, const unordered_map<const char*, const char*>& HttpHeaders = {}, bool ConnectionClose = true) { ; }
-			virtual inline const msgid& GetMsgIds() const { return 0; }
+			virtual inline const msgid& GetMsgId() const { return 0; }
 			virtual inline const Server::CAddress& GetAddress() const { return {}; }
 			virtual inline const Proto::RequestMethod& GetMethod() const { return Proto::UNSUPPORTED; }
 			virtual inline const zcstring& GetUri() const { return {}; }

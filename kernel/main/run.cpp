@@ -1,7 +1,6 @@
 #include "kernel.h"
 #include "trace.h"
 #include <sys/types.h>
-#include "impl/cfgimpl.h"
 #include <csignal>
 #include <execinfo.h>
 #include <stdlib.h>
@@ -10,11 +9,16 @@
 #include <utils/option.h>
 #include <string>
 
+#include "impl/cfgimpl.h"
+#include "impl/routerimpl.h"
+
 #include "init-cmd.hpp"
 #include "init-server.hpp"
 #include "init-threadpool.hpp"
 #include "init-mq.hpp"
 #include "init-sapi.hpp"
+#include "init-channels.hpp"
+#include "init-routes.hpp"
 
 using namespace std;
 using namespace Fiber;
@@ -25,7 +29,10 @@ template<typename ... SIGN>
 static inline void handleSignals(__sighandler_t&& handler, SIGN...signals) {
 	int signals_list[sizeof...(signals) + 1] = { signals ...,0 };
 	for (auto&& n = 0; signals_list[n]; n++) {
-		::signal(n, handler);
+		struct sigaction act;
+		memset(&act, 0, sizeof(act));
+		act.sa_handler = handler;
+		sigaction(n, &act, 0);
 	}
 }
 
@@ -37,10 +44,12 @@ void Kernel::Run(int argc, char* argv[]) {
 	
 	using cconfig = unordered_map<string, pair<list<string>, unordered_map<string, string>>>;
 
+	unique_ptr<ConfigImpl>	fiberConfig;
+	unique_ptr<RouterImpl>	fiberRouter;
 	unique_ptr<Server>		fiberServer;
 	unique_ptr<ThreadPool>	fiberWorkers;
-	unique_ptr<ConfigImpl>	fiberConfig;
 
+	std::unordered_map<std::string, std::tuple<std::string, std::string, std::string, std::shared_ptr<Fiber::ConfigImpl>>> fiberChannels;
 	
 	const static unordered_map<int, string> signalNames({ {SIGUSR1,"SIGUSR1"},{SIGUSR2,"SIGUSR2"},{SIGINT,"SIGINT"},{SIGQUIT,"SIGQUIT"},{SIGTERM,"SIGTERM"} });
 
@@ -57,24 +66,32 @@ void Kernel::Run(int argc, char* argv[]) {
 
 				initConfig(cmd("config", "fiber.config"), move(config_data));
 
+				log_option("Configuration from", "%s", cmd("config", "fiber.config").c_str());
+
 				fiberConfig = std::unique_ptr<ConfigImpl>(new ConfigImpl(move(config_data), move(programDir), move(programWorkDir), move(programName)));
 				
-				auto&& numMQ = initMQ((*fiberConfig)["fiber"]["mq"],*this, fiberMQModules);
+				if (!initMQ((*fiberConfig)["fiber"]["mq"], *this, fiberMQModules))
+					throw std::runtime_error("No valid MQ modules found");
 
-				auto&& numSAPI = initSAPI((*fiberConfig)["fiber"]["sapi"], *this, fiberSAPIModules);
+				initSAPI((*fiberConfig)["fiber"]["sapi"], *this, fiberSAPIModules);
 
-				auto&& numListeners = initServer((*fiberConfig)["fiber"]["server"], fiberServer);
+				if (!initChannels((*fiberConfig)["channel"], fiberChannels, fiberMQModules, fiberSAPIModules))
+					throw std::runtime_error("No valid Channels found");
 
-				if (!numMQ || !numListeners) {
-					log_print("<System.Startup.Error> Invalid Fiber.Bus configuration.");
-					exit(-3);
-				}
-				initThreadPool((*fiberConfig)["fiber"]["server"], fiberWorkers);
+				fiberRouter = std::unique_ptr<RouterImpl>(new RouterImpl);
+
+				if (!initRoutes(*fiberRouter, *this,fiberChannels, fiberMQModules))
+					throw std::runtime_error("No valid Routes found");
+
+				if (!initServer((*fiberConfig)["fiber"]["server"], fiberServer)) 
+					throw std::runtime_error("No valid Listeners found");
+
+				initThreadPool((*fiberConfig)["fiber"]["pool"], fiberWorkers);
 
 			}
 		}
 		catch (exception& ex) {
-			log_print("[ %s:%s ] %s", "EXCEPTION", "STARTUP", ex.what());
+			log_print("<System.Startup.Error> %s", ex.what());
 			exit(-2);
 		}
 	}
@@ -82,7 +99,7 @@ void Kernel::Run(int argc, char* argv[]) {
 	{
 		handleSignals([](int sig_no) {
 			procSignal = sig_no;
-		},SIGINT, SIGQUIT, SIGTERM, SIGUSR1, SIGUSR2);
+		},SIGINT, SIGQUIT, SIGTERM, SIGKILL, SIGSTOP);
 
 		handleSignals([](int sig_no) {
 			void *array[10];
@@ -93,40 +110,25 @@ void Kernel::Run(int argc, char* argv[]) {
 			exit(-1);
 		}, SIGSEGV);
 
-		auto&& requestHandler = [&fiberWorkers](shared_ptr<Server::CHandler> handler) {
-			fiberWorkers->Enqueue([](shared_ptr<Server::CHandler> handler) {
-				try {
-					handler->Process();
-					handler->Reply(200, nullptr, (const uint8_t*)"test\n", 5, { {"XSample-HEADER","909"} });
-				}
-				catch (RuntimeException& ex) {
-					log_print("<Server.Runtime.Exception> %s", ex.what());
-				}
-				catch (std::exception& ex) {
-					log_print("<Server.Std.Exception> %s", ex.what());
-				}
-			}, handler);
+		auto&& requestHandler = [&fiberWorkers,&fiberRouter](shared_ptr<Server::CHandler>&& handler) {
+			fiberWorkers->Enqueue([&fiberRouter](shared_ptr<Server::CHandler>& request) {
+				fiberRouter->Process(request);
+			}, std::ref(handler));
 		};
 
 		while (fiberServer->Listen(requestHandler, 3000)) {
 			if (procSignal == 0) {
 				continue;
 			}
-			else if (procSignal == SIGUSR1 || procSignal == SIGUSR2) {
-				log_print("[ %s ] Signal recvd.", signalNames.at(procSignal).c_str());
-				procSignal = 0;
-				continue;
-			}
 			else if (procSignal == SIGINT || procSignal == SIGQUIT || procSignal == SIGTERM) {
 				log_print("[ %s ] Signal recvd. Exit now.", signalNames.at(procSignal).c_str());
+				fflush(stdout);
 				break;
 			}
 		}
-		{
-			fiberServer.release();
-		}
-		{
-			fiberWorkers.release();
-		}
+
+		fiberServer.reset();
+		fiberWorkers.reset();
+		fiberRouter.reset();
 	}
 }

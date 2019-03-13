@@ -35,15 +35,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{10252f92-4ea1-499b-b883-0146d189715b}</ProjectGuid>
+    <ProjectGuid>{5b486659-677a-4141-8f10-a561c31ccf3c}</ProjectGuid>
     <Keyword>Linux</Keyword>
-    <RootNamespace>kernel</RootNamespace>
+    <RootNamespace>mq_sync</RootNamespace>
     <MinimumVisualStudioVersion>15.0</MinimumVisualStudioVersion>
     <ApplicationType>Linux</ApplicationType>
     <ApplicationTypeRevision>1.0</ApplicationTypeRevision>
     <TargetLinuxPlatform>Generic</TargetLinuxPlatform>
     <LinuxProjectType>{D51BCBC9-82E9-4017-911E-C93873C4EA2B}</LinuxProjectType>
-    <ProjectName>bus</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
@@ -60,11 +59,13 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <UseDebugLibraries>true</UseDebugLibraries>
-    <RemoteRootDir>~/projects/$(SolutionName)</RemoteRootDir>
+    <RemoteRootDir>~/projects/$(SolutionName)/mq</RemoteRootDir>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <UseDebugLibraries>false</UseDebugLibraries>
-    <RemoteRootDir>~/projects/$(SolutionName)</RemoteRootDir>
+    <RemoteRootDir>~/projects/$(SolutionName)/mq</RemoteRootDir>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -78,65 +79,30 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>..\bin\$(Configuration)\</OutDir>
-    <TargetName>fiber-$(ProjectName)-$(Platform)</TargetName>
-    <TargetExt />
-    <IncludePath>../ci;../lib/dom/src/dom</IncludePath>
-    <AdditionalSourcesToCopyMapping>../lib;../ci;$(AdditionalSourcesToCopyMapping)</AdditionalSourcesToCopyMapping>
+    <OutDir>..\..\bin\$(Configuration)\</OutDir>
+    <TargetName>lib-$(ProjectName)-$(Platform)</TargetName>
+    <IncludePath>../../ci;../../lib/dom/src/dom</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>..\bin\$(Configuration)\</OutDir>
-    <TargetName>fiber-$(ProjectName)-$(Platform)</TargetName>
-    <TargetExt />
-    <IncludePath>../ci;../lib/dom/src/dom</IncludePath>
-    <AdditionalSourcesToCopyMapping>../lib;../ci;$(AdditionalSourcesToCopyMapping)</AdditionalSourcesToCopyMapping>
+    <OutDir>..\..\bin\$(Configuration)\</OutDir>
+    <TargetName>lib-$(ProjectName)-$(Platform)</TargetName>
+    <IncludePath>../../ci;../../lib/dom/src/dom</IncludePath>
   </PropertyGroup>
   <ItemGroup>
-    <ClCompile Include="main\config.cpp" />
-    <ClCompile Include="main\impl\routerimpl.cpp" />
-    <ClCompile Include="main\kernel.cpp" />
-    <ClCompile Include="main\run.cpp" />
-    <ClCompile Include="bus.cpp" />
-    <ClCompile Include="mt\threadpool.cpp" />
-    <ClCompile Include="net\impl\httpimpl.cpp" />
-    <ClCompile Include="net\server.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="src\sync-queue.cpp" />
+    <ClCompile Include="src\sync-sapi.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="main\impl\mqimpl.h" />
-    <ClInclude Include="main\impl\routerimpl.h" />
-    <ClInclude Include="main\impl\zcstringimpl.h" />
-    <ClInclude Include="main\init-channels.hpp" />
-    <ClInclude Include="main\init-cmd.hpp" />
-    <ClInclude Include="main\init-mq.hpp" />
-    <ClInclude Include="main\init-routes.hpp" />
-    <ClInclude Include="main\init-sapi.hpp" />
-    <ClInclude Include="main\init-server.hpp" />
-    <ClInclude Include="main\init-threadpool.hpp" />
-    <ClInclude Include="main\kernel.h" />
-    <ClInclude Include="main\impl\cfgimpl.h" />
-    <ClInclude Include="mt\threadpool.h" />
-    <ClInclude Include="net\impl\bufferimpl.h" />
-    <ClInclude Include="net\impl\httpcodes.hpp" />
-    <ClInclude Include="net\impl\httpimpl.h" />
-    <ClInclude Include="net\impl\protoimpl.h" />
-    <ClInclude Include="net\impl\socketimpl.h" />
-    <ClInclude Include="net\impl\wsimpl.h" />
-    <ClInclude Include="net\impl\zcstringimpl.h" />
-    <ClInclude Include="net\server.h" />
-    <ClInclude Include="version.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="fiber.config.sample">
-      <FileType>Document</FileType>
-    </Text>
-    <None Include="README.md" />
+    <ClInclude Include="src\sync-queue.h" />
+    <ClInclude Include="src\sync-sapi.h" />
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <CppLanguageStandard>c++17</CppLanguageStandard>
     </ClCompile>
     <Link>
-      <LibraryDependencies>dl;pthread</LibraryDependencies>
+      <LibraryDependencies>pthread</LibraryDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -144,7 +110,7 @@
       <CppLanguageStandard>c++17</CppLanguageStandard>
     </ClCompile>
     <Link>
-      <LibraryDependencies>dl;pthread</LibraryDependencies>
+      <LibraryDependencies>pthread</LibraryDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

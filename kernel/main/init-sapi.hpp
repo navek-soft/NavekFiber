@@ -6,7 +6,9 @@
 #include <memory>
 #include <trace.h>
 
-static inline size_t initSAPI(const Fiber::ConfigImpl& options, Dom::Client::Manager<IKernel>& fiberRegistry, std::unordered_map<std::string, std::unique_ptr<const Fiber::ConfigImpl>>& ClassesSAPI) {
+static inline size_t initSAPI(const Fiber::ConfigImpl& options, 
+	Dom::Client::Manager<IKernel>& fiberRegistry, 
+	std::unordered_map<std::string, std::tuple<std::string, std::shared_ptr<Fiber::ConfigImpl>>>& ClassesSAPI) {
 	std::string sapiPath(options.GetConfigValue("modules-dir", options.GetProgramDir()));
 	auto numSAPI = 0;
 	for (auto&& sapi : options.GetSections()) {
@@ -16,7 +18,7 @@ static inline size_t initSAPI(const Fiber::ConfigImpl& options, Dom::Client::Man
 		try {
 			if (!sapi_class.empty() && !sapi_module.empty() && fiberRegistry.EmplaceServer(sapiPath + sapi_module, "SAPI")) {
 				numSAPI++;
-				ClassesSAPI.emplace(sapi_class, std::unique_ptr<const Fiber::ConfigImpl>(new Fiber::ConfigImpl(options[sapi.c_str()])));
+				ClassesSAPI.emplace(sapi,std::make_tuple(sapi_class, std::shared_ptr<Fiber::ConfigImpl>(new Fiber::ConfigImpl(options[sapi.c_str()]))));
 				log_option(std::string("sapi." + sapi).c_str(), "Class `%s` (%s) loaded", sapi_class.c_str(), std::string(sapiPath + sapi_module).c_str());
 				continue;
 			}

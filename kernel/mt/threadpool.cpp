@@ -97,7 +97,7 @@ void ThreadPool::Enqueue(Dom::IUnknown* pThreadJob) {
 			job->Release();
 		}
 		else {
-			trace("Interface `IThreadJob` not implemnted");
+			log_print("<Runtime.Error> Interface `IThreadJob` not implemented");
 		}
 		job->Release();
 	}, pThreadJob, ref(PoolYet));
@@ -143,7 +143,7 @@ void ThreadPool::Hire(size_t NumWorkers,ThreadPool::WorkerType Type) {
 						return !Yet || !Tasks.empty();
 					});
 					if (!Yet) {
-						trace("Terminate thread: `%s`", thread_name.c_str());
+						dbg_trace("Terminate thread: `%s`", thread_name.c_str());
 						return;
 					}
 
@@ -153,10 +153,10 @@ void ThreadPool::Hire(size_t NumWorkers,ThreadPool::WorkerType Type) {
 						auto&& th = Workers.find(this_thread::get_id());
 						if (th != Workers.end()) {
 							th->second.detach();
-							trace("Leave thread: `%s` (%ld)", thread_name.c_str(), Workers.erase(this_thread::get_id()));
+							dbg_trace("Leave thread: `%s` (%ld)", thread_name.c_str(), Workers.erase(this_thread::get_id()));
 						}
 						else {
-							trace("Gone thread: `%s` (%ld)", thread_name.c_str(), this_thread::get_id());
+							dbg_trace("Gone thread: `%s` (%ld)", thread_name.c_str(), this_thread::get_id());
 						}
 						return;
 					}

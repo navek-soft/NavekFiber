@@ -11,8 +11,8 @@ namespace Fiber {
 	using namespace std;
 	using namespace Dom;
 
-	using cmqmodules = std::unordered_map < std::string, std::unique_ptr<const Fiber::ConfigImpl>>;
-	using csapimodules = std::unordered_map < std::string, std::unique_ptr<const Fiber::ConfigImpl>>;
+	using cmqmodules = std::unordered_map < std::string, std::tuple<std::string, std::shared_ptr<Fiber::ConfigImpl>>>;
+	using csapimodules = std::unordered_map < std::string, std::tuple<std::string, std::shared_ptr<Fiber::ConfigImpl>>>;
 
 	class Kernel : public Dom::Client::Manager<IKernel> {
 	private:

@@ -65,5 +65,17 @@ namespace utils {
 			}
 			return result;
 		}
+
+		static inline size_t time_period(const std::string& value) {
+			static const std::regex re(R"((?:\s*(\d+)\s*h)?(?:\s*(\d+)\s*m)?(?:\s*(\d+)\s*s)?)");
+			std::smatch match;
+			if (!value.empty() && std::regex_search(value, match, re) && match.size() > 1) {
+				auto&& h = match.str(1);
+				auto&& m = match.str(2);
+				auto&& s = match.str(3);
+				return (h.empty() ? 0 : std::stol(h) * 3600) + (m.empty() ? 0 : std::stol(m) * 60) + (s.empty() ? 0 : std::stol(s));
+			}
+			return 0;
+		}
 	}
 }

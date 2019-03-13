@@ -6,6 +6,7 @@
 #include <interface/IKernel.h>
 #include <interface/IRequest.h>
 #include "../../net/server.h"
+#include "cfgimpl.h"
 
 namespace Fiber {
 	using namespace std;
@@ -72,8 +73,11 @@ namespace Fiber {
 		RouteList	Routes;
 	public:
 		RouterImpl() { ; }
-		bool AddRoute(const std::string& path, const std::string& classname, Dom::Interface<IKernel>&& kernel);
-		bool Process(const Server::CHandler& request);
+		~RouterImpl(){ 
+			Routes.clear(); 
+		}
+		bool AddRoute(const std::string& chPath, const std::string& mqClass, Fiber::ConfigImpl* chConfig, Dom::Interface<IKernel>&& kernel);
+		void Process(const shared_ptr<Server::CHandler>& handler);
 	};
 }
 
