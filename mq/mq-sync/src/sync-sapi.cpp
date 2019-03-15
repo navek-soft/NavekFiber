@@ -23,7 +23,7 @@ inline void SyncSAPIHandler::ReplyWithCode(IUnknown* unknown, size_t Code, const
 		std::string queueLength = std::to_string(mq_queue.size());
 		headers.emplace("X-MQ-CLASS", "Sync.MQ.SAPI");
 		headers.emplace("X-MQ-QUEUE", queueLength.c_str());
-		headers.emplace("Content-Type", ContentType.c_str());
+		if (!ContentType.empty()) headers.emplace("Content-Type", ContentType.c_str());
 		request->Reply(Code, Message, Body.data(), Body.length(), headers, true);
 	}
 }

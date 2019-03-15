@@ -6,7 +6,7 @@
 
 namespace Fiber {
 	using namespace std;
-	class ConfigImpl : public Dom::Client::Embedded<ConfigImpl,IConfig> {
+	class ConfigImpl : public virtual Dom::IUnknown,public IConfig {
 		const unordered_map<string, pair<list<string>, unordered_map<string, string>>>&& configValues;
 		const string &&progDir, &&progWorkDir, &&progName;
 		string space;
@@ -22,6 +22,8 @@ namespace Fiber {
 		ConfigImpl(const ConfigImpl&& c) : configValues(move(c.configValues)), progDir(move(c.progDir)), progWorkDir(move(c.progWorkDir)), progName(move(c.progName)), space(c.space) {
 			;
 		}
+
+		virtual ~ConfigImpl() { ; }
 
 		inline const list<string> GetSections() const { 
 			auto&& it = configValues.find(space);  
@@ -60,5 +62,9 @@ namespace Fiber {
 		inline virtual const char* GetProgramName() const { return progName.c_str(); }
 		inline virtual const char* GetProgramDir() const { return progDir.c_str(); }
 		inline virtual const char* GetProgramCurrentDir() const { return progWorkDir.c_str(); }
+
+		inline virtual long AddRef() { return 1; }
+		virtual long Release() { return 1; }
+		virtual bool QueryInterface(const Dom::uiid&, void **ppv) { return false; }
 	};
 }

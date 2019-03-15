@@ -24,11 +24,9 @@ inline struct pollfd pollin(int socket) {
 
 Server::Server() : msgIndex(0) {
 	signal(SIGPIPE, SIG_IGN);
-	dbg_trace("");
 }
 
 Server::~Server() {
-	dbg_trace("");
 }
 
 int Server::AddListener(const string& proto, const string& listen, const string& query_limit, const string& header_limit) {
@@ -42,8 +40,8 @@ int Server::AddListener(const string& proto, const string& listen, const string&
 			if ((err = Socket::Open(so_server, bind_params[0], bind_params[1])) == 0) {
 				auto optQueryLimit = utils::option::get_bytes(query_limit, 1048576);
 				auto optHeaderLimit = utils::option::get_bytes(header_limit, 8192);
-				conHandlers.emplace(so_server, [optQueryLimit, optHeaderLimit](msgid mid, int socket, sockaddr_storage& sa, socklen_t len) -> shared_ptr<CHandler> {
-					return shared_ptr<CHandler>(new Proto::HttpImpl(mid, socket, sa, optQueryLimit, optHeaderLimit));
+				conHandlers.emplace(so_server, [optQueryLimit, optHeaderLimit](msgid mid, int socket, sockaddr_storage& sa, socklen_t len) -> CHandler* {
+					return (CHandler*)(new Proto::HttpImpl(mid, socket, sa, optQueryLimit, optHeaderLimit));
 				});
 				conFd.emplace_back(pollin(so_server));
 				return 0;
@@ -53,7 +51,7 @@ int Server::AddListener(const string& proto, const string& listen, const string&
 	return err;
 }
 
-bool Server::Listen(std::function<void(shared_ptr<CHandler>&&)>&& callback, size_t timeout_msec) {
+bool Server::Listen(std::function<void(CHandler*)>&& callback, size_t timeout_msec) {
 	auto result = poll(conFd.data(), conFd.size(), (int)timeout_msec);
 	switch (result) {
 	case -1: 

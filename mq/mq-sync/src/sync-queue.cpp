@@ -14,23 +14,35 @@ SyncQueueHandler::~SyncQueueHandler() {
 	dbg_trace("");
 }
 
-inline void SyncQueueHandler::ReplyWithCode(IUnknown* unknown, size_t Code, const char* Message, std::string&& Body, std::unordered_map<const char*, const char*>&& headers, const std::string& ContentType) const {
+inline bool SyncQueueHandler::ReplyWithCode(IUnknown* unknown, size_t Code, const char* Message, const zcstring& Body, std::unordered_map<const char*, const char*>&& headers, const std::string& ContentType) {
+	Interface<IRequest> request;
+	if (request.QueryInterface(unknown)) {
+		headers.emplace("X-MQ-CLASS", "Sync.MQ.Queue");
+		headers.emplace("X-MQ-QUEUE-SIZE", std::to_string(mq_queue.size()).c_str());
+		headers.emplace("X-MQ-PENDING-SIZE", std::to_string(mq_locked.size()).c_str());
+		if(!ContentType.empty()) headers.emplace("Content-Type", ContentType.c_str());
+		return request->Reply(Code, Message, Body.c_str(), Body.length(), headers, true);
+	}
+	return false;
+}
+
+inline bool SyncQueueHandler::ReplyWithCode(IUnknown* unknown, size_t Code, const char* Message, std::string&& Body, std::unordered_map<const char*, const char*>&& headers, const std::string& ContentType) const {
 	Interface<IRequest> request;
 	if (request.QueryInterface(unknown)) {
 		std::string queueLength = std::to_string(mq_queue.size());
 		headers.emplace("X-MQ-CLASS", "Sync.MQ.Queue");
-		headers.emplace("X-MQ-QUEUE", queueLength.c_str());
-		headers.emplace("Content-Type", ContentType.c_str());
-		request->Reply(Code, Message, Body.data(), Body.length(), headers, true);
+		headers.emplace("X-MQ-QUEUE-SIZE", std::to_string(mq_queue.size()).c_str());
+		headers.emplace("X-MQ-PENDING-SIZE", std::to_string(mq_locked.size()).c_str());
+		if (!ContentType.empty()) headers.emplace("Content-Type", ContentType.c_str());
+		return request->Reply(Code, Message, Body.data(), Body.length(), headers, true);
 	}
+	return false;
 }
 
 bool SyncQueueHandler::Initialize(IUnknown* pIKernel, IUnknown* pIConfig) {
 
-	if (pIKernel && pIKernel->QueryInterface(mq_kernel.guid(), mq_kernel)) {
-		pIKernel->AddRef();
-		if (pIConfig && pIConfig->QueryInterface(mq_config.guid(), mq_config)) {
-			pIConfig->AddRef();
+	if (mq_kernel.QueryInterface(pIKernel)) {
+		if (mq_config.QueryInterface(pIConfig)) {
 			mq_options.LimitPeriodSec = utils::option::time_period(mq_config->GetConfigValue("queue-limit-request", "0s"));
 			try {
 				mq_options.LimitSize = std::stol(mq_config->GetConfigValue("queue-limit-size", "0"));
@@ -63,14 +75,19 @@ void SyncQueueHandler::Finalize(IUnknown*) {
 void SyncQueueHandler::Get(IUnknown* unknown) {
 	Interface<IRequest> request;
 	if (request.QueryInterface(unknown)) {
-		unique_lock<std::mutex> lock(mq_sync);
-		if (!mq_queue.empty()) {
-			auto muid = mq_queue.front();
-			mq_queue.pop();
-			mq_locked.emplace(muid);
-
-			auto payload = move(mq_messages.at(muid)->GetContent());
-			request->Reply(200, "OK", payload->GetData(),payload->GetLength());
+		uint64_t muid = 0;
+		Dom::Interface<IRequest> xrequest;
+		{
+			unique_lock<std::mutex> lock(mq_sync);
+			if (!mq_queue.empty()) {
+				muid = mq_queue.front();
+				mq_queue.pop();
+				mq_locked.emplace(muid);
+				xrequest.QueryInterface(mq_messages.at(muid));
+			}
+		}
+		if (xrequest) {
+			ReplyWithCode(unknown, 200, "OK", xrequest->GetContent(), { {"X-MSG-FORWARD-UID",std::to_string(muid).c_str()} }, xrequest->GetHeaderOption("Content-Type", "application/json").str());
 		}
 		else {
 			ReplyWithCode(unknown, 204, "Empty", "");
@@ -84,31 +101,26 @@ void SyncQueueHandler::Get(IUnknown* unknown) {
 void SyncQueueHandler::Post(IUnknown* unknown) {
 	Interface<IRequest> request;
 	if (request.QueryInterface(unknown)) {
-		auto&& x_mid = request->GetHeaderOption("X-MQ-MESSAGE-REPLY-ID", nullptr);
-		if (!x_mid->Empty()) {
-			unique_lock<std::mutex> lock(mq_sync);
+		auto&& x_mid = request->GetHeaderOption("X-MSG-FORWARD-UID", nullptr);
+		if (!x_mid.empty()) {
+			Dom::Interface<IRequest> xrequest;
 			try {
-				uint64_t xid = std::stoul(std::string(x_mid->GetData(), x_mid->GetLength()));
-
-				auto&& client = mq_messages.find(xid);
-
-				if (client != mq_messages.end()) {
-					auto&& content = request->GetContent();
-
-					auto oContentType = request->GetHeaderOption("Content-Type", "text/json");
-					;
-
-					if (client->second->Reply(200, "OK", content->GetData(), content->GetLength(), {
-						{"Content-Type",std::string(oContentType->GetData(), oContentType->GetLength()).c_str()},
-						{"X-MQ-MESSAGE-REPLY-ID",std::to_string(request->GetMsgId()).c_str() },
-						{"X-MQ-CLASS", "Sync.MQ.Queue"},
-					})) {
-						ReplyWithCode(unknown, 200, "OK", "");
+				uint64_t xid = std::stoul(x_mid.str());
+				{
+					unique_lock<std::mutex> lock(mq_sync);
+					auto&& client = mq_messages.find(xid);
+					if (client != mq_messages.end()) {
+						xrequest.QueryInterface(client->second);
 						mq_messages.erase(xid);
 						mq_locked.erase(xid);
 					}
+				}
+				if (xrequest) {
+					if (ReplyWithCode(xrequest, 200, "OK", request->GetContent(), { {"X-MSG-FORWARD-UID",std::to_string(request->GetMsgId()).c_str()} }, request->GetHeaderOption("Content-Type", "application/json").str())) {
+						ReplyWithCode(unknown, 200, "OK", "");
+					}
 					else {
-						ReplyWithCode(unknown, 499, "Client Closed Request", "");
+						ReplyWithCode(unknown, 499, "Unable to sent client response", "");
 					}
 				}
 				else {
@@ -116,11 +128,11 @@ void SyncQueueHandler::Post(IUnknown* unknown) {
 				}
 			}
 			catch (std::exception& ex) {
-				ReplyWithCode(unknown, 400, "Bad Request. Invalid `X-MQ-MESSAGE-REPLY-ID` header", "");
+				ReplyWithCode(unknown, 400, "Bad Request. Invalid `X-MSG-FORWARD-UID` header", "");
 			}
 		}
 		else {
-			ReplyWithCode(unknown, 400, "Bad Request. Header `X-MQ-MESSAGE-REPLY-ID` not found", "");
+			ReplyWithCode(unknown, 400, "Bad Request. Header `X-MSG-FORWARD-UID` not found", "");
 		}
 	}
 	else {
@@ -153,7 +165,7 @@ void SyncQueueHandler::Head(IUnknown* unknown) {
 		unique_lock<std::mutex> lock(mq_sync);
 		mid = mq_queue.empty() ? 0 : mq_queue.front();
 	}
-	ReplyWithCode(unknown, 200, "OK", json::string(json::object({ {"muid",to_string(mid)} })));
+	ReplyWithCode(unknown, 200, "OK", "", { {"X-MSG-HEAD-UID",std::to_string(mid).c_str()} });
 }
 
 void SyncQueueHandler::Options(IUnknown* unknown) {

@@ -10,13 +10,14 @@
 #include <unordered_set>
 
 using namespace std;
+using request_list = unordered_map<uint64_t, Dom::Interface<IRequest>>;
 
 class SyncQueueHandler : public Dom::Client::Embedded<SyncQueueHandler, IMQ> {
 private:
-	mutex											mq_sync;
-	queue<uint64_t>									mq_queue;
-	unordered_set<uint64_t>							mq_locked;
-	unordered_map<uint64_t, Dom::Interface<IRequest>>	mq_messages;
+	mutex						mq_sync;
+	queue<uint64_t>				mq_queue;
+	unordered_set<uint64_t>		mq_locked;
+	request_list				mq_messages;
 	struct {
 		size_t LimitTasks, LimitSize, LimitPeriodSec;
 	} mq_options;
@@ -25,7 +26,8 @@ private:
 	Dom::Interface<IConfig> mq_config;
 
 private:
-	inline void ReplyWithCode(IUnknown* unknown, size_t Code, const char* Message, std::string&& Body, std::unordered_map<const char*, const char*>&& headers = {}, const std::string& ContentType = ("application/json")) const;
+	inline bool ReplyWithCode(IUnknown* unknown, size_t Code, const char* Message, std::string&& Body, std::unordered_map<const char*, const char*>&& headers = {}, const std::string& ContentType = {}) const;
+	inline bool ReplyWithCode(IUnknown* unknown, size_t Code, const char* Message, const zcstring& Body, std::unordered_map<const char*, const char*>&& headers = {}, const std::string& ContentType = {});
 public:
 	SyncQueueHandler();
 	virtual ~SyncQueueHandler();

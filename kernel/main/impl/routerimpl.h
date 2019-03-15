@@ -77,7 +77,7 @@ namespace Fiber {
 			Routes.clear(); 
 		}
 		bool AddRoute(const std::string& chPath, const std::string& mqClass, Fiber::ConfigImpl* chConfig, Dom::Interface<IKernel>&& kernel);
-		void Process(const shared_ptr<Server::CHandler>& handler);
+		void Process(Server::CHandler* request);
 	};
 }
 

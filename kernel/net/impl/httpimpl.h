@@ -28,7 +28,7 @@ namespace Fiber {
 			Server::CTelemetry			Telemetry;
 		public:
 			HttpImpl(msgid mid, int hSocket, sockaddr_storage& sa,size_t max_request_length= 1048576,size_t max_header_length = 8192) noexcept;
-			~HttpImpl();
+			virtual ~HttpImpl();
 
 			virtual void Process();
 			virtual void Reply(size_t Code, const char* Message = nullptr, const uint8_t* Content = nullptr,size_t ContentLength = 0, const unordered_map<const char*, const char*>& HttpHeaders = {}, bool ConnectionClose=true);

@@ -93,6 +93,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ClCompile Include="main\config.cpp" />
+    <ClCompile Include="main\impl\requestimpl.cpp" />
     <ClCompile Include="main\impl\routerimpl.cpp" />
     <ClCompile Include="main\kernel.cpp" />
     <ClCompile Include="main\run.cpp" />
@@ -103,8 +104,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main\impl\mqimpl.h" />
+    <ClInclude Include="main\impl\requestimpl.h" />
     <ClInclude Include="main\impl\routerimpl.h" />
-    <ClInclude Include="main\impl\zcstringimpl.h" />
     <ClInclude Include="main\init-channels.hpp" />
     <ClInclude Include="main\init-cmd.hpp" />
     <ClInclude Include="main\init-mq.hpp" />
@@ -121,7 +122,6 @@
     <ClInclude Include="net\impl\protoimpl.h" />
     <ClInclude Include="net\impl\socketimpl.h" />
     <ClInclude Include="net\impl\wsimpl.h" />
-    <ClInclude Include="net\impl\zcstringimpl.h" />
     <ClInclude Include="net\server.h" />
     <ClInclude Include="version.h" />
   </ItemGroup>

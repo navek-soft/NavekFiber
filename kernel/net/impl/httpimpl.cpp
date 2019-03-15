@@ -62,7 +62,7 @@ static inline int http_parse_request(const ReadBufferImpl&& data, RequestMethod&
 
 static inline void http_close_connection(int& Handle) {
 	if (Handle) {
-		trace("Close socket: %ld", Handle);
+		dbg_trace("Close socket: %ld", Handle);
 		shutdown(Handle, SHUT_RDWR);
 		Socket::Close(Handle);
 		Handle = 0;
@@ -71,11 +71,12 @@ static inline void http_close_connection(int& Handle) {
 
 HttpImpl::HttpImpl(msgid mid, int hSocket, sockaddr_storage& sa, size_t max_request_length, size_t max_header_length ) noexcept
 	: Handle(hSocket), MsgId(mid), MaxRequestLength(max_request_length),MaxHeaderLength(max_header_length), Address(sa) {
-	
+	dbg_trace("");
 	Telemetry.tmCreatedAt = utils::timestamp();
 }
 
 HttpImpl::~HttpImpl() { 
+	dbg_trace("");
 	http_close_connection(Handle); 
 }
 
@@ -117,7 +118,7 @@ void HttpImpl::Reply(size_t Code, const char* Message, const uint8_t* Content, s
 		Answer.append("Connection: close\r\n");
 	}
 
-	Answer.append("X-Fiber-Msg-Uid: ").append(toString(MsgId)).append("\r\n");
+	Answer.append("X-MSG-UID: ").append(toString(MsgId)).append("\r\n");
 	{
 		/* Telemetry */
 		Answer.append("X-Fiber-Msg-Telemetry: created-at=").append(std::to_string(Telemetry.tmCreatedAt)).

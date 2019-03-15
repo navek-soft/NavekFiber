@@ -7,7 +7,7 @@
 #include <sys/socket.h>
 #include <poll.h>
 #include <utils/timestamp.h>
-#include "impl/zcstringimpl.h"
+#include <utils/str.h>
 #include "impl/protoimpl.h"
 
 namespace Fiber {
@@ -33,10 +33,9 @@ namespace Fiber {
 			CTelemetry() : tmCreatedAt(0), tmReadingAt(0), tmFinishedAt(0) { ; }
 		} Telemetry;
 		class CHandler {
-		protected:
+		public:
 			CHandler() { ; }
 			virtual ~CHandler() { ; }
-		public:
 			virtual void Process() = 0;
 			/* Why uint8_t*,char* ? Because ABI support need */
 			virtual void Reply(size_t Code, const char* Message = nullptr, const uint8_t* Content = nullptr, size_t ContentLength = 0, const unordered_map<const char*, const char*>& HttpHeaders = {}, bool ConnectionClose = true) = 0;
@@ -50,7 +49,7 @@ namespace Fiber {
 			virtual inline CTelemetry& GetTelemetry() = 0;
 		};
 	private:
-		using callback = function<shared_ptr<CHandler>(msgid, int, sockaddr_storage&,socklen_t)>;
+		using callback = function<CHandler*(msgid, int, sockaddr_storage&,socklen_t)>;
 		uint_fast64_t					msgIndex;
 		unordered_map<int, callback>	conHandlers;
 		vector<struct pollfd>			conFd;
@@ -59,7 +58,7 @@ namespace Fiber {
 		~Server();
 		int AddListener(const string& proto, const string& listen, const string& query_limit="1048576", const string& header_limit = "8192");
 
-		bool Listen(std::function<void(shared_ptr<CHandler>&&)>&& callback,size_t timeout_msec = 5000);
+		bool Listen(std::function<void(CHandler*)>&& callback,size_t timeout_msec = 5000);
 	};
 
 	static inline const char* toString(const size_t& val) {

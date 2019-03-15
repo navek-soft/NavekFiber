@@ -110,10 +110,10 @@ void Kernel::Run(int argc, char* argv[]) {
 			exit(-1);
 		}, SIGSEGV);
 
-		auto&& requestHandler = [&fiberWorkers,&fiberRouter](shared_ptr<Server::CHandler>&& handler) {
-			fiberWorkers->Enqueue([&fiberRouter](shared_ptr<Server::CHandler>& request) {
+		auto&& requestHandler = [&fiberWorkers,&fiberRouter](Server::CHandler* handler) {
+			fiberWorkers->Enqueue([&fiberRouter](Server::CHandler* request) {
 				fiberRouter->Process(request);
-			}, std::ref(handler));
+			}, handler);
 		};
 
 		while (fiberServer->Listen(requestHandler, 3000)) {

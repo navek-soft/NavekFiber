@@ -37,9 +37,9 @@ namespace Fiber {
 		inline std::string Content(size_t HeadOffset = 0) const {
 			std::string result;
 			result.resize(dataLength - HeadOffset);
-			size_t offset = 0;
-			for (auto&& it = dataParts.begin(); it != dataParts.end(); offset += it->second, it++, HeadOffset = 0) {
-				memcpy(result.data() + offset,it->first,it->second);
+			size_t offset = 0,length = 0;
+			for (auto&& it = dataParts.begin(); it != dataParts.end() && (length = it->second - HeadOffset); offset += (it->second - HeadOffset), it++, HeadOffset = 0) {
+				memcpy(result.data() + offset,it->first + HeadOffset, length);
 			}
 			return result;
 		}
