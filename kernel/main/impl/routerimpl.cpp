@@ -5,9 +5,9 @@
 
 using namespace Fiber;
 
-bool RouterImpl::AddRoute(const std::string& chPath, const std::string& mqClass, Fiber::ConfigImpl* chConfig, Dom::Interface<IKernel>&& kernel) {
+bool RouterImpl::AddRoute(const std::string& chPath, const std::string& mqClass, const std::string& mqName, Fiber::ConfigImpl* chConfig, Dom::Interface<IKernel>&& kernel) {
 	Dom::Interface<IMQ> mq;
-	if (!chPath.empty() && kernel->CreateMQ(mqClass, mq) && mq->Initialize(kernel, chConfig)) {
+	if (!chPath.empty() && kernel->CreateMQ(mqClass, mq) && mq->Initialize(mqName.c_str(), kernel, chConfig)) {
 		mq->AddRef();
 		Routes.emplace(chPath, std::move(mq));
 		return true;

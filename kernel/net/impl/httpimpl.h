@@ -12,10 +12,10 @@ namespace Fiber {
 				ReadBufferImpl		Raw;
 				RequestMethod		Method;
 				zcstring			Uri;
+				zcstring			Content;
 				zcstring			Params;
 				deque<std::pair<zcstring, zcstring>> Headers;
 				size_t				PayloadOffset;
-				inline string		Content() const { return Raw.Content(PayloadOffset); }
 			};
 
 		public:
@@ -38,7 +38,7 @@ namespace Fiber {
 			virtual inline const zcstring& GetUri() const { return Request.Uri; }
 			virtual inline const zcstring& GetParams() const { return Request.Params; }
 			virtual inline const deque<std::pair<zcstring, zcstring>>& GetHeaders() const { return Request.Headers; }
-			virtual inline std::string GetContent() const { return Request.Content(); }
+			virtual inline const zcstring& GetContent() const { return Request.Content; }
 			virtual inline Server::CTelemetry& GetTelemetry() { return Telemetry; }
 		};
 	}

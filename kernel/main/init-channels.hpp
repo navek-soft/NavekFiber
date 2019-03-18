@@ -18,7 +18,7 @@ static inline bool parseUri(const std::string& uri, std::string& mq, std::string
 }
 
 static inline size_t initChannels(const Fiber::ConfigImpl& options, 
-	std::unordered_map<std::string, std::tuple<std::string,std::string, std::string,std::shared_ptr<Fiber::ConfigImpl>>>& Channels,
+	std::unordered_map<std::string, std::tuple<std::string,std::string, std::string, std::shared_ptr<Fiber::ConfigImpl>>>& Channels,
 	const std::unordered_map<std::string, std::tuple<std::string, std::shared_ptr<Fiber::ConfigImpl>>>& ClassesMq,
 	const std::unordered_map<std::string, std::tuple<std::string, std::shared_ptr<Fiber::ConfigImpl>>>& ClassesSAPI) {
 	auto numChannels = 0;
@@ -39,7 +39,7 @@ static inline size_t initChannels(const Fiber::ConfigImpl& options,
 
 				if (ch_uri.back() != '/') ch_uri.append("/");
 
-				Channels.emplace(ch_proto, std::make_tuple(ch_proto,sapi_proto, ch_uri, std::shared_ptr<Fiber::ConfigImpl>(new Fiber::ConfigImpl(options[ch.c_str()]))));
+				Channels.emplace(ch, std::make_tuple(ch_proto,sapi_proto, ch_uri, std::shared_ptr<Fiber::ConfigImpl>(new Fiber::ConfigImpl(options[ch.c_str()]))));
 
 				if (sapi_proto.empty()) {
 					log_option(std::string("channel." + ch).c_str(), "%s:/%s", ch_proto.c_str(), ch_uri.c_str());

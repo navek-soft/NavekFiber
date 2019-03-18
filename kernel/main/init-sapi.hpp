@@ -7,7 +7,7 @@
 #include <trace.h>
 
 static inline size_t initSAPI(const Fiber::ConfigImpl& options, 
-	Dom::Client::Manager<IKernel>& fiberRegistry, 
+	Dom::Client::Manager<IKernel, ISerialize>& fiberRegistry,
 	std::unordered_map<std::string, std::tuple<std::string, std::shared_ptr<Fiber::ConfigImpl>>>& ClassesSAPI) {
 	std::string sapiPath(options.GetConfigValue("modules-dir", options.GetProgramDir()));
 	auto numSAPI = 0;

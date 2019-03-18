@@ -29,7 +29,7 @@ Server::Server() : msgIndex(0) {
 Server::~Server() {
 }
 
-int Server::AddListener(const string& proto, const string& listen, const string& query_limit, const string& header_limit) {
+ssize_t Server::AddListener(const string& proto, const string& listen, const string& query_limit, const string& header_limit) {
 	auto&& r = utils::match(proto, "http"/*, "ws"*/);
 	int so_server;
 	int err = EPROTONOSUPPORT;

@@ -7,7 +7,7 @@
 #include <trace.h>
 
 static inline size_t initMQ(const Fiber::ConfigImpl& options, 
-	Dom::Client::Manager<IKernel>& fiberRegistry,
+	Dom::Client::Manager<IKernel,ISerialize>& fiberRegistry,
 	std::unordered_map<std::string, std::tuple<std::string, std::shared_ptr<Fiber::ConfigImpl>>>& ClassesMq) {
 	std::string mqPath(options.GetConfigValue("modules-dir", options.GetProgramDir()));
 	auto numMQ = 0;

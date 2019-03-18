@@ -11,13 +11,13 @@ using namespace Fiber::Proto;
 
 static constexpr uint8_t* HttpLineEndians[] = { (uint8_t*)"\r\n\r\n", (uint8_t*)"\n\n", (uint8_t*)"\n", (uint8_t*)"\r\n" };
 
-static inline int http_parse_request(const ReadBufferImpl&& data, RequestMethod& Method, zcstring& Url, zcstring& Params, deque<std::pair<zcstring, zcstring>>& Headers, size_t& PayloadOffset) {
+static inline int http_parse_request(const ReadBufferImpl&& data, RequestMethod& Method, zcstring& Url, zcstring& Content, zcstring& Params, deque<std::pair<zcstring, zcstring>>& Headers) {
 	
 	if (!data.empty()) {
 		auto&& head = data.Head();
-		const uint8_t*	current = head.first, *line_begin = head.first,*end = head.second;
+		const uint8_t*	current = head.begin(), *line_begin = head.begin(),*end = head.end();
 		
-		auto&& method = utils::match_values(head.first, head.second, RequestMethods,9);
+		auto&& method = utils::match_values(head.begin(), head.end(), RequestMethods,9);
 
 		if (method.result()) {
 			Method = (RequestMethod)method.result();
@@ -49,7 +49,7 @@ static inline int http_parse_request(const ReadBufferImpl&& data, RequestMethod&
 					}
 				}
 				else /* header separate */ {
-					PayloadOffset = (const uint8_t*)line.end() - head.first;
+					Content = data.Content((const uint8_t*)line.end() - head.begin());
 					return 0;
 				}
 			}
@@ -94,7 +94,7 @@ void HttpImpl::Process() {
 		throw RuntimeException(__FILE__, __LINE__, "Invalid receive data %s:%u. Socket error %s(%lu). MsgId: %lu", Address.toString(), Address.Port, strerror((int)result), result, MsgId);
 	}
 
-	if (auto code = http_parse_request(std::move(Request.Raw), Request.Method, Request.Uri, Request.Params, Request.Headers, Request.PayloadOffset)) {
+	if (auto code = http_parse_request(std::move(Request.Raw), Request.Method, Request.Uri, Request.Content, Request.Params, Request.Headers)) {
 		Reply(code);
 		throw RuntimeException(__FILE__, __LINE__, "Invalid HTTP request %s:%u. HTTP error: %ld.  MsgId: %lu", Address.toString(), Address.Port, code, MsgId);
 	}
@@ -122,9 +122,14 @@ void HttpImpl::Reply(size_t Code, const char* Message, const uint8_t* Content, s
 	{
 		/* Telemetry */
 		Answer.append("X-Fiber-Msg-Telemetry: created-at=").append(std::to_string(Telemetry.tmCreatedAt)).
-			append(";reading-at=").	append(std::to_string(Telemetry.tmReadingAt)).
-			append(";finished-at=").append(std::to_string(Telemetry.tmFinishedAt = utils::timestamp())).
-			append("\r\n");
+			append(";reading-at=").append(std::to_string(Telemetry.tmReadingAt));
+			if (Telemetry.tmEmplacedAt) {
+				Answer.append(";emplaced-at=").append(std::to_string(Telemetry.tmEmplacedAt));
+			}
+			if (Telemetry.tmExtractedAt) {
+				Answer.append(";extracted-at=").append(std::to_string(Telemetry.tmExtractedAt));
+			}
+			Answer.append(";finished-at=").append(std::to_string(Telemetry.tmFinishedAt = utils::timestamp())).append("\r\n");
 	}
 	Answer.append("\r\n");
 

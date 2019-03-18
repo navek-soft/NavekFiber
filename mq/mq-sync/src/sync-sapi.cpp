@@ -97,8 +97,8 @@ void SyncSAPIHandler::WorkingThread(mutex& sync, condition_variable& cond, queue
 	} while (mq_working);
 }
 
-bool SyncSAPIHandler::Initialize(IUnknown* pIKernel, IUnknown* pIConfig) {
-
+bool SyncSAPIHandler::Initialize(const char* Name, IUnknown* pIKernel, IUnknown* pIConfig) {
+	mq_name = Name;
 	if (pIKernel && pIKernel->QueryInterface(mq_kernel.guid(), mq_kernel)) {
 		pIKernel->AddRef();
 		if (pIConfig && pIConfig->QueryInterface(mq_config.guid(), mq_config)) {

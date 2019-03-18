@@ -5,7 +5,7 @@
 struct IMQ : virtual public Dom::IUnknown {
 	struct Info { const char* Name; const char* Version;};
 
-	virtual bool Initialize(IUnknown* /* kernelObject */, IUnknown* /* optionsList */) = 0;
+	virtual bool Initialize(const char* /* mqName */,IUnknown* /* kernelObject */, IUnknown* /* optionsList */) = 0;
 	virtual const Info&	GetInfo() const = 0;
 	virtual void Finalize(IUnknown*) = 0;
 

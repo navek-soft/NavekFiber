@@ -25,6 +25,7 @@ private:
 	Dom::Interface<IConfig>								mq_config;
 	std::string											mq_sapi_class;
 	std::string											mq_sapi_script;
+	std::string											mq_name;
 	std::unordered_map<uint64_t, Dom::Interface<IRequest>>	mq_messages;
 	struct {
 		size_t LimitTasks, LimitSize, LimitPeriodSec;
@@ -39,7 +40,7 @@ public:
 	SyncSAPIHandler();
 	virtual ~SyncSAPIHandler();
 
-	virtual bool Initialize(Dom::IUnknown* /* kernelObject */, Dom::IUnknown* /* optionsList */);
+	virtual bool Initialize(const char*,Dom::IUnknown* /* kernelObject */, Dom::IUnknown* /* optionsList */);
 	virtual const Info&	GetInfo() const;
 	virtual void Finalize(Dom::IUnknown*);
 

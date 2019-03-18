@@ -21,7 +21,7 @@ namespace Fiber {
 			}
 
 			cpathstring(const cpathstring& path) : cfrom(path.cfrom), cto(path.cto), freea(false) { ; }
-			cpathstring& operator = (const cpathstring& path) { cfrom = path.cfrom; cto = path.cto; freea = false; }
+			cpathstring& operator = (const cpathstring& path) { cfrom = path.cfrom; cto = path.cto; freea = false; return *this; }
 
 			cpathstring(const char* from = nullptr, const char* to = nullptr) : cfrom((char*)from), cto((char*)to), freea(false) { ; }
 			~cpathstring() { if (freea) { delete[] cfrom; } }
@@ -76,7 +76,7 @@ namespace Fiber {
 		~RouterImpl(){ 
 			Routes.clear(); 
 		}
-		bool AddRoute(const std::string& chPath, const std::string& mqClass, Fiber::ConfigImpl* chConfig, Dom::Interface<IKernel>&& kernel);
+		bool AddRoute(const std::string& chPath, const std::string& mqClass, const std::string& mqName, Fiber::ConfigImpl* chConfig, Dom::Interface<IKernel>&& kernel);
 		void Process(Server::CHandler* request);
 	};
 }

@@ -11,7 +11,6 @@ namespace Fiber {
 	class RequestImpl : public Dom::Client::Embedded<RequestImpl, IRequest> {
 	private:
 		std::unique_ptr<Server::CHandler>		Request;
-		std::string								Content;
 		std::unordered_map<zcstring, zcstring, utils::zcstring_ifasthash, utils::zcstring_iequal>	Headers;
 	public:
 		RequestImpl(Server::CHandler*);
@@ -22,7 +21,7 @@ namespace Fiber {
 		virtual const zcstring GetContent();
 		virtual const zcstring GetUri();
 		virtual bool Reply(size_t Code, const char* Message = nullptr, const char* Content = nullptr, size_t ContentLength = 0, const std::unordered_map<const char*, const char*>& HttpHeaders = {}, bool ConnectionClose = true);
-
+		virtual void SetTelemetry(TeleOption);
 		void Process(Dom::IUnknown*);
 	};
 }

@@ -13,7 +13,7 @@ public:
 		both, left, right
 	};
 	zcstring(const uint8_t* _from = nullptr, const uint8_t* _to = nullptr) : _begin(_from), _end(_to){ ; }
-	zcstring(std::string& s)
+	zcstring(const std::string& s)
 		: _begin(nullptr),_end(nullptr) { _begin = (const uint8_t*)s.c_str(); _end = (const uint8_t*)s.c_str() + s.length(); }
 
 	zcstring(const zcstring& v) { _begin = v._begin; _end = v._end; }

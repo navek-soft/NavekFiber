@@ -30,11 +30,12 @@ namespace Fiber {
 			utils::microseconds		tmCreatedAt;
 			utils::microseconds		tmReadingAt;
 			utils::microseconds		tmFinishedAt;
-			CTelemetry() : tmCreatedAt(0), tmReadingAt(0), tmFinishedAt(0) { ; }
+			utils::microseconds		tmEmplacedAt;
+			utils::microseconds		tmExtractedAt;
+			CTelemetry() : tmCreatedAt(0), tmReadingAt(0), tmFinishedAt(0), tmEmplacedAt(0), tmExtractedAt(0){ ; }
 		} Telemetry;
 		class CHandler {
 		public:
-			CHandler() { ; }
 			virtual ~CHandler() { ; }
 			virtual void Process() = 0;
 			/* Why uint8_t*,char* ? Because ABI support need */
@@ -45,7 +46,7 @@ namespace Fiber {
 			virtual inline const zcstring& GetUri() const = 0;
 			virtual inline const zcstring& GetParams() const = 0;
 			virtual inline const deque<std::pair<zcstring, zcstring>>& GetHeaders() const = 0;
-			virtual inline string GetContent() const = 0;
+			virtual inline const zcstring& GetContent() const = 0;
 			virtual inline CTelemetry& GetTelemetry() = 0;
 		};
 	private:
@@ -56,7 +57,7 @@ namespace Fiber {
 	public:
 		Server();
 		~Server();
-		int AddListener(const string& proto, const string& listen, const string& query_limit="1048576", const string& header_limit = "8192");
+		ssize_t AddListener(const string& proto, const string& listen, const string& query_limit="1048576", const string& header_limit = "8192");
 
 		bool Listen(std::function<void(CHandler*)>&& callback,size_t timeout_msec = 5000);
 	};

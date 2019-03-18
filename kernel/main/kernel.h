@@ -6,6 +6,7 @@
 #include <memory>
 #include "impl/cfgimpl.h"
 #include "interface/IKernel.h"
+#include "interface/ISerialize.h"
 
 namespace Fiber {
 	using namespace std;
@@ -14,7 +15,7 @@ namespace Fiber {
 	using cmqmodules = std::unordered_map < std::string, std::tuple<std::string, std::shared_ptr<Fiber::ConfigImpl>>>;
 	using csapimodules = std::unordered_map < std::string, std::tuple<std::string, std::shared_ptr<Fiber::ConfigImpl>>>;
 
-	class Kernel : public Dom::Client::Manager<IKernel> {
+	class Kernel : public Dom::Client::Manager<IKernel, ISerialize> {
 	private:
 		string programDir;
 		string programWorkDir;
@@ -32,5 +33,8 @@ namespace Fiber {
 
 		virtual bool CreateMQ(const clsuid& cid, void ** ppv);
 		virtual bool CreateSAPI(const clsuid& cid, void ** ppv);
+
+		virtual bool Write(const char* Key, const char* Id, const char* Value);
+		virtual bool Read(const char* Key, char** Id, char** Value);
 	};
 }

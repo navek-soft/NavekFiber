@@ -9,7 +9,7 @@ static inline size_t initServer(const Fiber::ConfigImpl& options, std::unique_pt
 	for (auto&& proto : options.GetSections()) {
 		auto&& proto_options = options[proto.c_str()];
 		auto listen = utils::explode(":", proto_options.GetConfigValue("listen"), 2);
-		int err = 0;
+		ssize_t err = 0;
 		if ((err = fiberServer->AddListener(proto, proto_options.GetConfigValue("listen"), proto_options.GetConfigValue("query-limit"), proto_options.GetConfigValue("header-limit"))) == 0) {
 			numListeners++;
 			log_option(std::string("server." + proto).c_str(), "Port: %s (Iface: %s) success initialize", 

@@ -33,10 +33,7 @@ const zcstring RequestImpl::GetHeaderOption(const char* option, const char* defv
 }
 
 const zcstring RequestImpl::GetContent() {
-	if (Content.empty()) {
-		Content = Request->GetContent();
-	}
-	return { Content };
+	return Request->GetContent();
 }
 
 const zcstring RequestImpl::GetUri() {
@@ -69,4 +66,14 @@ void RequestImpl::Process(Dom::IUnknown* mq) {
 		return;
 	}
 	throw std::runtime_error("IMQ interface not implemented");
+}
+
+void RequestImpl::SetTelemetry(TeleOption opt) {
+	switch (opt)
+	{
+	case EmplaceAt: Request->GetTelemetry().tmEmplacedAt = utils::timestamp(); break;
+	case ExtractAt:Request->GetTelemetry().tmExtractedAt = utils::timestamp(); break;
+	default:
+		break;
+	}
 }
