@@ -25,7 +25,7 @@ static inline string implode_config_path(const list<string>&& path,const string&
 	return result;
 }
 
-void Kernel::LoadConfig(const std::string&& configFileName, unordered_map<string, pair<list<string>, unordered_map<string, string>>>&& config) {
+void Kernel::initConfig(const std::string&& configFileName, unordered_map<string, pair<list<string>, unordered_map<string, string>>>&& config) {
 
 	static const std::regex re_config_section(R"(^\s*(\[+)\s*(.*?)\s*\]+)");
 	static const std::regex re_config_propety(R"(^\s*([\w\-:]+)\s*=\s*(?:("|'|)(.*?)\2)\s*$)");
@@ -90,20 +90,4 @@ void Kernel::LoadConfig(const std::string&& configFileName, unordered_map<string
 		throw system_error(errno, std::system_category(), configFileName);
 	}
 
-}
-
-const char* Kernel::GetConfigValue(const char* propname, const char* propdefault) {
-	return nullptr;
-}
-
-const char* Kernel::GetProgramName() {
-	return programName.c_str();
-}
-
-const char* Kernel::GetProgramDir() {
-	return programDir.c_str();
-}
-
-const char* Kernel::GetProgramCurrentDir() {
-	return programWorkDir.c_str();
 }

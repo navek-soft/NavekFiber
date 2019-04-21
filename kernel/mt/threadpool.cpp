@@ -1,11 +1,11 @@
 #include "threadpool.h"
 #include <dom.h>
-#include <utils/transform.h>
+#include <utils/option.h>
 #include <unordered_set>
 #include <coreexcept.h>
 #include <trace.h>
 
-using namespace Kernel;
+using namespace Fiber;
 
 struct CvtStringToInt {
 	inline size_t operator ()(const std::string& from) const { return std::stoul(from); }
@@ -29,24 +29,28 @@ ThreadPool::ThreadPool(const string& InitialWorkers, const string& MaxWorkers, c
 
 	/* Initialize CPUs bindings  */
 	{
-		auto list_worker = utils::expand<size_t, CvtStringToInt>(CoreBinding);
-		auto list_exclude = utils::expand<size_t, CvtStringToInt>(ExcludeBinding);
+		auto list_worker = utils::option::expand<size_t, CvtStringToInt>(CoreBinding);
+		auto list_exclude = utils::option::expand<size_t, CvtStringToInt>(ExcludeBinding);
 
 		size_t max_threads = std::thread::hardware_concurrency();
+		unordered_set<size_t> uniqCores;
 
 		if (list_worker.empty()) {
 			for (; max_threads--;) {
 				if (list_exclude.empty() || list_exclude.find(max_threads) == list_exclude.end()) {
-					PoolWorkersBinding.emplace_back(max_threads);
+					uniqCores.emplace(max_threads);
 				}
 			}
 		}
 		else {
 			for (auto&& co : list_worker) {
-				if (list_exclude.empty() || list_exclude.find(co) == list_exclude.end()) {
-					PoolWorkersBinding.emplace_back(co % max_threads);
+				if (list_exclude.empty() || list_exclude.find(co % max_threads) == list_exclude.end()) {
+					uniqCores.emplace(co % max_threads);
 				}
 			}
+		}
+		for (auto&& n : uniqCores) {
+			PoolWorkersBinding.emplace_back(n);
 		}
 	}
 	if (PoolWorkersBinding.empty() || !PoolInitWorkers || PoolMaxWorkers < PoolInitWorkers) {
@@ -93,7 +97,7 @@ void ThreadPool::Enqueue(Dom::IUnknown* pThreadJob) {
 			job->Release();
 		}
 		else {
-			trace("Interface `IThreadJob` not implemnted");
+			log_print("<Runtime.Error> Interface `IThreadJob` not implemented");
 		}
 		job->Release();
 	}, pThreadJob, ref(PoolYet));
@@ -139,7 +143,7 @@ void ThreadPool::Hire(size_t NumWorkers,ThreadPool::WorkerType Type) {
 						return !Yet || !Tasks.empty();
 					});
 					if (!Yet) {
-						trace("Terminate thread: `%s`", thread_name.c_str());
+						dbg_trace("Terminate thread: `%s`", thread_name.c_str());
 						return;
 					}
 
@@ -149,10 +153,10 @@ void ThreadPool::Hire(size_t NumWorkers,ThreadPool::WorkerType Type) {
 						auto&& th = Workers.find(this_thread::get_id());
 						if (th != Workers.end()) {
 							th->second.detach();
-							trace("Leave thread: `%s` (%ld)", thread_name.c_str(), Workers.erase(this_thread::get_id()));
+							dbg_trace("Leave thread: `%s` (%ld)", thread_name.c_str(), Workers.erase(this_thread::get_id()));
 						}
 						else {
-							trace("Gone thread: `%s` (%ld)", thread_name.c_str(), this_thread::get_id());
+							dbg_trace("Gone thread: `%s` (%ld)", thread_name.c_str(), this_thread::get_id());
 						}
 						return;
 					}
@@ -164,8 +168,8 @@ void ThreadPool::Hire(size_t NumWorkers,ThreadPool::WorkerType Type) {
 				task();
 				Busy-=1;
 			}
-		}, PoolWorkersBinding[PoolIndexWorkers%PoolWorkersBinding.size()], PoolIndexWorkers++, ref(PoolYet), ref(PoolQueueSync), ref(PoolCondition), ref(PoolTasks), ref(PoolWorkers),ref(PoolBusyWorkers), Type);
-
+		}, PoolWorkersBinding[PoolIndexWorkers%PoolWorkersBinding.size()], PoolIndexWorkers, ref(PoolYet), ref(PoolQueueSync), ref(PoolCondition), ref(PoolTasks), ref(PoolWorkers),ref(PoolBusyWorkers), Type);
+		PoolIndexWorkers++;
 		PoolWorkers.emplace(ant.get_id(), move(ant));
 	}
 }

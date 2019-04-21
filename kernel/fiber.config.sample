@@ -1,33 +1,33 @@
 [fiber]
 	[[server]]
 		[[[http]]]
-			listen = eth0:8080
-			query-limit = 1M # 0 - unlimit
-		
+			listen = :8080
+			query-limit = 1M # 0 - unlimit, default 1048576
+			header-limit = 4K # 0 - unlimit, default 8192
 		[[[websocket]]]
-			listen = eth0:8081
+			listen = :8081
 			query-limit = 1M # 0 - unlimit
-		
-		pool-workers = 10
-		pool-cores = 2-12
+
+	[[pool]]
+		thread-workers = 10
+		thread-limit = 50
+		core-bind = 2-12
+		core-exclude = 3,4
 
 	[[mq]]
-		modules_dir = /home/irokez/projects/NavekFiber/bin/x64/Debug/
-		[[[sync]]]
+		modules-dir = /home/irokez/projects/NavekFiber/bin/Debug/
+		[[[sync-sapi]]]
+			class = SyncSAPI
+			module = lib-mq-sync-x64.so
+		[[[sync-queue]]]
 			class = SyncQueue
-			module = lib-mq-sync.so
+			module = lib-mq-sync-x64.so
 		[[[async]]]
 			class = async
 			module = lib-mq-async.so
-		[[[simple]]]
-			class = simple
-			module = lib-mq-simple.so
-		[[[proxy]]]
-			class = proxy
-			module = lib-mq-proxy.so
-
+		
 	[[sapi]]
-		modules_dir = /home/irokez/projects/NavekFiber/bin/x64/Debug/
+		modules-dir = /home/irokez/projects/NavekFiber/bin/x64/Debug/
 		[[[php]]]
 			class = PhpEngine
 			module = lib-sapi-php.so
@@ -37,12 +37,11 @@
 
 [channel]
 	[[sms-gate]]
-		channel-endpoint = sync://sms-gate/*/ # sync, async, simple, proxy
+		channel-endpoint = sync-queue://sms-gate/*/ # sync, async, simple, proxy
 #		channel-sapi = php://scripts/sapi/sms-gate.php	 # php:// python:// lua:// | mysql:// pgsql:// json:// http:// ws://
-		channel-sapi = python://scripts/sapi/sms-gate.py	 # php:// python:// lua:// | mysql:// pgsql:// json:// http:// ws://
-		channel-fail-tolerance = none # none | transaction 
+#		channel-sapi = python://scripts/sapi/sms-gate.py	 # php:// python:// lua:// | mysql:// pgsql:// json:// http:// ws://
+#		channel-fail-tolerance = none # none | transaction 
 		queue-limit-tasks = 3
 		queue-limit-size = 0 # 0-no limit
-		queue-time-period = 1m
-		queue-time-limit = period # | none
-		php-config = /etc/php-embed.ini
+		queue-limit-request = 1m # 0 or empty - unlimit, [0-9][ms]
+#		php-config = /etc/php-embed.ini

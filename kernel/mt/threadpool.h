@@ -11,7 +11,7 @@
 #include <stdexcept>
 #include <interface/IThreadPool.h>
 
-namespace Kernel {
+namespace Fiber {
 	using namespace std;
 	class ThreadPool {
 	private:
@@ -32,6 +32,8 @@ namespace Kernel {
 	public:
 		ThreadPool(const string& InitialWorkers, const string& MaxWorkers,const string& CoreBinding = "1-2", const string& ExcludeBinding = "");
 		~ThreadPool();
+
+		inline const vector<size_t>& BindingCores() const { return PoolWorkersBinding; }
 
 		void Join();
 

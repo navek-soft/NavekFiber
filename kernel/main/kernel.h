@@ -1,26 +1,40 @@
 #pragma once
-#include "interface/IConfig.h"
 #include <string>
 #include <unordered_map>
 #include <list>
+#include <csignal>
+#include <memory>
+#include "impl/cfgimpl.h"
+#include "interface/IKernel.h"
+#include "interface/ISerialize.h"
 
 namespace Fiber {
 	using namespace std;
 	using namespace Dom;
-	class Kernel : public Dom::Client::Manager<IConfig> {
+
+	using cmqmodules = std::unordered_map < std::string, std::tuple<std::string, std::shared_ptr<Fiber::ConfigImpl>>>;
+	using csapimodules = std::unordered_map < std::string, std::tuple<std::string, std::shared_ptr<Fiber::ConfigImpl>>>;
+
+	class Kernel : public Dom::Client::Manager<IKernel, ISerialize> {
 	private:
 		string programDir;
 		string programWorkDir;
 		string programName;
+		static sig_atomic_t procSignal;
+
+		cmqmodules				fiberMQModules;
+		csapimodules			fiberSAPIModules;
 	private:
-		void LoadConfig(const std::string&& configFileName, unordered_map<string, pair<list<string>, unordered_map<string, string>>>&& config);
+		void initConfig(const std::string&& configFileName, unordered_map<string, pair<list<string>, unordered_map<string, string>>>&& config);
 	public:
 		Kernel();
 		~Kernel();
 		void Run(int argc, char* argv[]);
-		virtual const char* GetConfigValue(const char* propname, const char* propdefault = "");
-		virtual const char* GetProgramName();
-		virtual const char* GetProgramDir();
-		virtual const char* GetProgramCurrentDir();
+
+		virtual bool CreateMQ(const clsuid& cid, void ** ppv);
+		virtual bool CreateSAPI(const clsuid& cid, void ** ppv);
+
+		virtual bool Write(const char* Key, const char* Id, const char* Value);
+		virtual bool Read(const char* Key, char** Id, char** Value);
 	};
 }

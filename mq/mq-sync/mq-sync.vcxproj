@@ -35,14 +35,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{95ee8e27-e38a-4470-ab90-867d54bf5ba4}</ProjectGuid>
+    <ProjectGuid>{5b486659-677a-4141-8f10-a561c31ccf3c}</ProjectGuid>
     <Keyword>Linux</Keyword>
-    <RootNamespace>ci</RootNamespace>
+    <RootNamespace>mq_sync</RootNamespace>
     <MinimumVisualStudioVersion>15.0</MinimumVisualStudioVersion>
     <ApplicationType>Linux</ApplicationType>
     <ApplicationTypeRevision>1.0</ApplicationTypeRevision>
     <TargetLinuxPlatform>Generic</TargetLinuxPlatform>
-    <LinuxProjectType>{2238F9CD-F817-4ECC-BD14-2524D2669B35}</LinuxProjectType>
+    <LinuxProjectType>{D51BCBC9-82E9-4017-911E-C93873C4EA2B}</LinuxProjectType>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
@@ -59,11 +59,13 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <UseDebugLibraries>true</UseDebugLibraries>
-    <RemoteRootDir>~/projects/$(SolutionName)</RemoteRootDir>
-    <ConfigurationType>Makefile</ConfigurationType>
+    <RemoteRootDir>~/projects/$(SolutionName)/mq</RemoteRootDir>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <UseDebugLibraries>false</UseDebugLibraries>
+    <RemoteRootDir>~/projects/$(SolutionName)/mq</RemoteRootDir>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -77,35 +79,40 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>..\bin\$(Configuration)\</OutDir>
-    <RemoteProjectDir>$(RemoteRootDir)/$(ProjectName)</RemoteProjectDir>
-    <NMakeIncludeSearchPath>%(ClCompile.AdditionalIncludeDirectories)</NMakeIncludeSearchPath>
+    <OutDir>..\..\bin\$(Configuration)\</OutDir>
+    <TargetName>lib-$(ProjectName)-$(Platform)</TargetName>
+    <IncludePath>../../ci;../../lib/dom/src/dom</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>..\..\bin\$(Configuration)\</OutDir>
+    <TargetName>lib-$(ProjectName)-$(Platform)</TargetName>
+    <IncludePath>../../ci;../../lib/dom/src/dom</IncludePath>
   </PropertyGroup>
   <ItemGroup>
-    <ClInclude Include="coreexcept.h" />
-    <ClInclude Include="interface\IConfig.h" />
-    <ClInclude Include="interface\IMQ.h" />
-    <ClInclude Include="interface\IRequest.h" />
-    <ClInclude Include="interface\IKernel.h" />
-    <ClInclude Include="interface\ISAPI.h" />
-    <ClInclude Include="interface\ISerialize.h" />
-    <ClInclude Include="interface\IThreadPool.h" />
-    <ClInclude Include="json\writer.hpp" />
-    <ClInclude Include="sys\cmdline.h" />
-    <ClInclude Include="sys\path.h" />
-    <ClInclude Include="sys\signals.h" />
-    <ClInclude Include="trace.h" />
-    <ClInclude Include="utils\ascii.h" />
-    <ClInclude Include="utils\findmatch.h" />
-    <ClInclude Include="utils\option.h" />
-    <ClInclude Include="utils\str.h" />
-    <ClInclude Include="utils\timestamp.h" />
-    <ClInclude Include="utils\transform.h" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="src\sync-queue.cpp" />
+    <ClCompile Include="src\sync-sapi.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="README.md" />
+    <ClInclude Include="src\sync-queue.h" />
+    <ClInclude Include="src\sync-sapi.h" />
   </ItemGroup>
-  <ItemDefinitionGroup />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <CppLanguageStandard>c++17</CppLanguageStandard>
+    </ClCompile>
+    <Link>
+      <LibraryDependencies>pthread</LibraryDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <CppLanguageStandard>c++17</CppLanguageStandard>
+    </ClCompile>
+    <Link>
+      <LibraryDependencies>pthread</LibraryDependencies>
+    </Link>
+  </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
 </Project>

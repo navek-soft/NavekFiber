@@ -6,7 +6,7 @@
 
 namespace Fiber {
 	using namespace std;
-	class ConfigImpl : public Dom::Client::Embedded<ConfigImpl,IConfig> {
+	class ConfigImpl : public virtual Dom::IUnknown,public IConfig {
 		const unordered_map<string, pair<list<string>, unordered_map<string, string>>>&& configValues;
 		const string &&progDir, &&progWorkDir, &&progName;
 		string space;
@@ -23,6 +23,8 @@ namespace Fiber {
 			;
 		}
 
+		virtual ~ConfigImpl() { ; }
+
 		inline const list<string> GetSections() const { 
 			auto&& it = configValues.find(space);  
 			return it != configValues.cend() ? it->second.first : list<string>(); 
@@ -33,7 +35,7 @@ namespace Fiber {
 		}
 		inline operator bool() { return configValues.find(space) != configValues.cend(); }
 
-		inline virtual const char* GetConfigValue(const char* propname, const char* propdefault = "") { 
+		inline virtual const char* GetConfigValue(const char* propname, const char* propdefault = "") const {
 			size_t prop_vpart = string(propname).rfind('.');
 			string path(space), value;
 
@@ -50,13 +52,19 @@ namespace Fiber {
 
 			if (pit != configValues.end()) {
 				auto&& vit = pit->second.second.find(value);
-				return vit->second.c_str();
+				if (vit != pit->second.second.end()) {
+					return vit->second.c_str();
+				}
 			}
 
 			return propdefault;
 		}
-		inline virtual const char* GetProgramName() { return progName.c_str(); }
-		inline virtual const char* GetProgramDir() { return progDir.c_str(); }
-		inline virtual const char* GetProgramCurrentDir() { return progWorkDir.c_str(); }
+		inline virtual const char* GetProgramName() const { return progName.c_str(); }
+		inline virtual const char* GetProgramDir() const { return progDir.c_str(); }
+		inline virtual const char* GetProgramCurrentDir() const { return progWorkDir.c_str(); }
+
+		inline virtual long AddRef() { return 1; }
+		virtual long Release() { return 1; }
+		virtual bool QueryInterface(const Dom::uiid&, void **ppv) { return false; }
 	};
 }
