@@ -1,7 +1,7 @@
 #include "crequest.h"
 
 
-using namespace ibus;
+using namespace fiber;
 
 const std::unordered_map<size_t, const char*> crequest::codeResponse({
 	{ 0,"" },

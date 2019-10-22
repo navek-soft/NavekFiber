@@ -1,7 +1,7 @@
 #pragma once
 #include <mutex>
 
-namespace ibus {
+namespace fiber {
 	class cmemory {
 	private:
 		class pool {

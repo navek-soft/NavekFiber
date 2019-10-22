@@ -1,27 +1,10 @@
 #include <cstdio>
-#include "core/cserver.h"
-#include "core/cexcept.h"
-#include "server/chttpserver.h"
+#include "server/capp.h"
+#include "ci/cstring.h"
 
-using namespace core;
-
-int main()
+int main(int argc,char* argv[])
 {
-	{
-		cserver srv;
-		coptions::list options;
-		options.emplace("port", "8080");
-		try {
-			srv.emplace(new ibus::chttpserver(coptions(options)));
+	return fiber::capp::run(argc, argv);
+	return 0;
 
-			while (srv.listen(-1) >= 0) {
-				;
-			}
-			srv.shutdown();
-		}
-		catch (system_error & er) {
-			fprintf(stderr, "[ core::system_error ] %s\n", er.what());
-		}
-	}
-    return 0;
 }

@@ -83,12 +83,20 @@
     <ClCompile Include="core\cserver.cpp" />
     <ClCompile Include="core\cthreadpool.cpp" />
     <ClCompile Include="core\coption.cpp" />
+    <ClCompile Include="server\capp.cpp" />
+    <ClCompile Include="server\cbroker.cpp" />
+    <ClCompile Include="server\channel\cchannel-sync.cpp" />
+    <ClCompile Include="server\channel\cchannel.cpp" />
     <ClCompile Include="server\crequest.cpp" />
     <ClCompile Include="server\chttpserver.cpp" />
     <ClCompile Include="fiber-bus.cpp" />
+    <ClCompile Include="server\channel\cchannel-queue.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ci\cmemory.h" />
+    <ClInclude Include="server\capp.h" />
+    <ClInclude Include="server\channel\cchannel-queue.h" />
+    <ClInclude Include="server\channel\cchannel-sync.h" />
+    <ClInclude Include="server\cmemory.h" />
     <ClInclude Include="ci\cstring.h" />
     <ClInclude Include="core\cexcept.h" />
     <ClInclude Include="core\cchrono.h" />
@@ -97,15 +105,27 @@
     <ClInclude Include="core\cthreadpool.h" />
     <ClInclude Include="core\coption.h" />
     <ClInclude Include="core\memcpy.h" />
+    <ClInclude Include="lib\concurrentqueue\concurrentqueue.h" />
+    <ClInclude Include="server\cbroker.h" />
     <ClInclude Include="server\crequest.h" />
     <ClInclude Include="server\chttpserver.h" />
+    <ClInclude Include="server\curi.h" />
+    <ClInclude Include="server\pch.h" />
+    <ClInclude Include="server\channel\cchannel.h" />
+    <ClInclude Include="server\sapi\csapi.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="channel-queue.ebnf" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="README.md" />
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <CppLanguageStandard>c++17</CppLanguageStandard>
     </ClCompile>
     <Link>
-      <LibraryDependencies>pthread</LibraryDependencies>
+      <LibraryDependencies>pthread;curl</LibraryDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

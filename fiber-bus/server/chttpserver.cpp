@@ -5,8 +5,9 @@
 #include <unistd.h>
 #include <endian.h>
 #include <cstdarg>
+#include "capp.h"
 
-using namespace ibus;
+using namespace fiber;
 
 chttpserver::chttpserver(const core::coptions& options)
 	: core::cserver::tcp((uint16_t)options.at("port").number(), options.at("ip","").get(), options.at("iface", "").get())
@@ -18,7 +19,7 @@ chttpserver::chttpserver(const core::coptions& options)
 	set_reuseport();
 	if (optReceiveTimeout) {
 		/* set check every 500 msec */
-		set_receivetimeout(500);
+		set_receivetimeout(5000);
 	}
 }
 
@@ -33,7 +34,7 @@ void chttpserver::onclose(int soc) const {
 }
 
 void chttpserver::onconnect(int soc, const sockaddr_storage&, uint64_t time) const {
-	auto&& req = requestsClient.emplace(soc, std::unique_ptr<request>(new request(soc, optReceiveTimeout, time)));
+	auto&& req = requestsClient.emplace(soc, std::shared_ptr<request>(new request(soc, optReceiveTimeout, time)));
 	if (!req.second) {
 		req.first->second.get()->reset();
 		req.first->second->update_time();
@@ -67,16 +68,19 @@ void chttpserver::ondata(int soc) const {
 		auto&& result = cli->second->get_chunk(optMaxRequestSize);
 		cli->second->update_time();
 		if (result == 200) {
-			printf("(%ld) complete request...", soc);
+			capp::broker().enqueue(std::shared_ptr<fiber::crequest>(cli->second));
+			requestsClient.erase(cli);
+			
+			/*printf("(%ld) complete request...", soc);
 
-			cstringformat response;
+			ci::cstringformat response;
 			response.append("{\"Modifed\":\"%s\"}", "success");
 			response.append("test codeset");
 			cli->second->response(response, 200, {}, { { "X-Server","NavekFiber ESB" } });
 			printf("success (%lu,%lu)\n", cli->second->request_length(), cli->second->request_paload_length());
 			cli->second->disconnect();
 			requestsClient.erase(cli);
-			fflush(stdout);
+			fflush(stdout);*/
 		}
 		else if (result == 202) {
 			printf("(%ld) more data\n", soc);
@@ -118,10 +122,10 @@ inline ssize_t chttpserver::request::get_chunk(ssize_t max_request_size) {
 		
 		if (reqBuffer.back()->length > 0) {
 			if (reqBuffer.size() == 1) {
-				switch (check_type_parse()) {
+				switch (reqType = check_type_parse(); reqType) {
 				case crequest::post: case crequest::put: case patch:
 				{
-					auto&& it = headers.find({ "content-length",14 });
+					auto&& it = headers.find(ci::cstringview( "content-length",14 ));
 					if (it != headers.end()) {
 						reqContentLength = std::stoull(it->second.str());
 						if (reqContentLength > max_request_size) {
@@ -189,7 +193,7 @@ crequest::type chttpserver::request::check_type_parse() {
 #pragma message __FILE__ ":" "\n\t\thttp_request_types need declare with big endian conversion"
 #endif // BIG_ENDIAN
 
-	cstringview header((const char*)reqBuffer.front().get()->data, reqBuffer.front().get()->length);
+	ci::cstringview header((const char*)reqBuffer.front().get()->data, reqBuffer.front().get()->length);
 	if (header.length() > 9) {
 		offset_payload = 0;
 		for (size_t i = 0; i < sizeof(http_request_types); i++) {
@@ -205,16 +209,16 @@ crequest::type chttpserver::request::check_type_parse() {
 	return crequest::invalid;
 }
 
-inline bool chttpserver::request::request_parse(cstringview& val, const cstringview& request) {
+inline bool chttpserver::request::request_parse(ci::cstringview& val, const ci::cstringview& request) {
 	val = request.find_next_space(request);
 	return (!val.empty() && (*val.begin() == '/'));
 }
 
-inline bool chttpserver::request::headers_parse(crequest::headers& val,size_t& payload_offset, const cstringview& request) {
+inline bool chttpserver::request::headers_parse(crequest::headers& val,size_t& payload_offset, const ci::cstringview& request) {
 	auto&& line = request.find_next('\n', request);
 	for (line = request.find_next('\n', { line.end() + 1,request.end() }); !line.empty(); line = request.find_next('\n', { line.end() + 1,request.end() })) {
 		auto&& pair = line.explode(':', 1);
-		val.emplace(cstringview( pair.front().begin(),pair.front().end() - 1 ), pair.back());
+		val.emplace(ci::cstringview( pair.front().begin(),pair.front().end() - 1 ), pair.back());
 		
 		if (line.cast<uint16_t>() == uint16_t(0x0a0d) || line.cast<uint32_t>(-2) == uint32_t(0x0a0d0a0d)) {
 			payload_offset += (line.end() + 1) - request.begin();
@@ -225,15 +229,16 @@ inline bool chttpserver::request::headers_parse(crequest::headers& val,size_t& p
 }
 
 chttpserver::request::~request() {
+	printf("%s\n", __PRETTY_FUNCTION__);
 	disconnect();
 }
 
 const crequest::payload& chttpserver::request::request_paload() {
 	if (reqPayload.empty()) {
 		auto&& it = reqBuffer.begin();
-		reqPayload.emplace_back(cstringview(it->get()->data + offset_payload,it->get()->data + it->get()->length));
+		reqPayload.emplace_back(ci::cstringview(it->get()->data + offset_payload,it->get()->data + it->get()->length));
 		for (; ++it != reqBuffer.end();) {
-			reqPayload.emplace_back(cstringview(it->get()->data, it->get()->data + it->get()->length));
+			reqPayload.emplace_back(ci::cstringview(it->get()->data, it->get()->data + it->get()->length));
 		}
 	}
 	return reqPayload;
@@ -246,15 +251,64 @@ size_t chttpserver::request::response(const uint8_t* response_data, ssize_t resp
 	return 499 /* Connection close */;
 }
 
-size_t chttpserver::request::response(const cstringformat& data, size_t msg_code, const std::string& msg_text, const std::unordered_map<std::string, std::string>& headers_list) {
+
+size_t chttpserver::request::response(const crequest::payload& data, size_t data_length, size_t msg_code, const std::string& msg_text, const std::unordered_map<std::string, std::string>& headers_list) {
 	if (reqSocket > 0) {
-		cstringformat response_data;
+		ci::cstringformat response_data;
+		ssize_t result = -1;
+		response_data.append("HTTP/1.1 %lu %s\r\n", msg_code, (msg_text.empty() ? message(msg_code).second : msg_text).c_str());
+		for (auto&& [h, v] : headers_list) {
+			response_data.append("%s: %s\r\n", h.c_str(), v.c_str());
+		}
+
+		if (!data_length) {
+			for (auto&& p : data) {
+				data_length += p.length();
+			}
+		}
+
+		response_data.append("Content-Length: %lu\r\n\r\n", data_length);
+
+		for (auto&& chunk : response_data) {
+			if (result = send(reqSocket, chunk.data(), chunk.length(), 0); result == (ssize_t)chunk.length()) {
+				continue;
+			}
+			if (result == -1) {
+				fprintf(stderr, "[http-server(%s)]. error response send (%s)\n", strerror(errno));
+				return 523;
+			}
+			return 206;
+		}
+		for (auto&& p : data) {
+			if (result = send(reqSocket, p.data(), p.length(), 0); result == (ssize_t)p.length()) {
+				continue;
+			}
+			if (result == -1) {
+				fprintf(stderr, "[http-server(%s)]. error response send (%s)\n", strerror(errno));
+				return 523;
+			}
+			return 206;
+		}
+
+		return 200;
+	}
+	return 499 /* Connection close */;
+}
+
+
+size_t chttpserver::request::response(const ci::cstringformat& data, size_t msg_code, const std::string& msg_text, const std::unordered_map<std::string, std::string>& headers_list) {
+	if (reqSocket > 0) {
+		ci::cstringformat response_data;
 		ssize_t result = -1;
 		response_data.append("HTTP/1.1 %lu %s\r\n", msg_code, (msg_text.empty() ? message(msg_code).second : msg_text).c_str());
 		for (auto&& [h, v] : headers_list) {
 			response_data.append("%s: %s\r\n",h.c_str(),v.c_str());
 		}
-		response_data.append("Content-Length: %lu\r\n\r\n", data.length());
+		if(data.length())
+			response_data.append("Content-Length: %lu\r\n\r\n", data.length());
+		else
+			response_data.append("\r\n");
+
 		response_data.append(data);
 
 		for (auto&& chunk : response_data) {

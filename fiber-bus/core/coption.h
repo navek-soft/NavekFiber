@@ -70,7 +70,8 @@ namespace core {
 		using list = std::unordered_map<std::string, coption>;
 
 		coptions() = default;
-		explicit coptions(const coptions::list& opts) : options(opts) { ; }
+		coptions(const std::deque<std::pair<std::string, std::string>>& opts) { for (auto&& o : opts) { options.emplace(o.first, coption(o.second)); } }
+		coptions(const coptions::list& opts) : options(opts) { ; }
 		explicit coptions(const coptions& c) : options(c.options) { ; }
 
 		inline core::coption at(const std::string& name, const std::string& defalut_value) const {
