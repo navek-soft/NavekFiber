@@ -5,6 +5,7 @@
 #include "../core/coption.h"
 #include "channel/cchannel-queue.h"
 #include "channel/cchannel-sync.h"
+#include "csapiserver.h"
 
 using namespace fiber;
 
@@ -31,7 +32,9 @@ int capp::run(int argc, char* argv[])
 			try {
 				core::coptions::list optlist;
 				optlist.emplace("port", "8080");
-				esbServer.emplace(new fiber::chttpserver(core::coptions(optlist)));
+				
+				esbServer.emplace(std::shared_ptr<core::cserver::base>(new fiber::chttpserver(core::coptions(optlist))));
+				esbServer.emplace(std::shared_ptr<core::cserver::base>(new fiber::csapiserver(core::coptions(optlist))));
 			}
 			catch (core::system_error & er) {
 

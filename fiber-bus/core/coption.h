@@ -73,6 +73,7 @@ namespace core {
 		coptions(const std::deque<std::pair<std::string, std::string>>& opts) { for (auto&& o : opts) { options.emplace(o.first, coption(o.second)); } }
 		coptions(const coptions::list& opts) : options(opts) { ; }
 		explicit coptions(const coptions& c) : options(c.options) { ; }
+		inline coptions& emplace(const std::string& name, const std::string& opt) { options.emplace(name, coption(opt)); return *this; }
 
 		inline core::coption at(const std::string& name, const std::string& defalut_value) const {
 			auto&& it = options.find(name);

@@ -84,9 +84,10 @@ namespace fiber {
 		virtual const payload& request_paload() = 0;
 		virtual ssize_t request_paload_length() = 0;
 
-		virtual size_t response(const uint8_t* response_data, ssize_t response_length) = 0;
-		virtual size_t response(const payload& data, size_t data_length, size_t msg_code, const std::string& msg_text = {}, const response_headers& headers_list = {}) = 0;
-		virtual size_t response(const ci::cstringformat& data, size_t msg_code, const std::string& msg_text = {}, const response_headers& headers_list = {}) = 0;
+		virtual ssize_t response(const payload& data, size_t data_length, size_t msg_code, const std::string& msg_text = {}, const response_headers& headers_list = {}) = 0;
+		virtual ssize_t response(const ci::cstringformat& data, size_t msg_code, const std::string& msg_text = {}, const response_headers& headers_list = {}) = 0;
+		virtual ssize_t response(const payload& data, const std::string& uri, size_t msg_code, crequest::type msg_type, const crequest::response_headers& headers_list = {}) = 0;
+		virtual ssize_t response(const ci::cstringformat& data, const std::string& uri, size_t msg_code, crequest::type msg_type, const response_headers& headers_list = {}) = 0;
 
 		virtual void disconnect() = 0;
 	};

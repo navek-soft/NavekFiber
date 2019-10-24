@@ -6,6 +6,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <sys/timerfd.h>
+#include <sys/un.h>
 
 #pragma GCC diagnostic ignored "-Wterminate"
 
@@ -154,10 +155,165 @@ void cserver::emplace_udp(std::shared_ptr<cserver::base>&& srv) throw() {
 
 }
 
+void cserver::emplace_pipe(std::shared_ptr<cserver::base>&& srv) throw() {
+	auto&& server = srv.get()->get<pipe>();
+	
+	if (int sock = socket(AF_UNIX, (int)server.soType,0); sock > 0) {
+		try {
+			/* binding */
+			{
+				unlink(server.sPipeFilename.c_str());
+
+				struct sockaddr_un serveraddr;
+				memset(&serveraddr, 0, sizeof(serveraddr));
+				serveraddr.sun_family = AF_UNIX;
+				strncpy(serveraddr.sun_path, server.sPipeFilename.c_str(), sizeof(serveraddr.sun_path) - 1);
+				if (bind(sock, (sockaddr*)&serveraddr, (socklen_t)SUN_LEN(&serveraddr)) < 0)
+					throw core::system_error(errno, "PIPE-SERVER(bind)", __PRETTY_FUNCTION__, __LINE__);
+			}
+
+			if (::listen(sock, SOMAXCONN) < 0)
+				throw core::system_error(errno, "PIPE-SERVER(listen)", __PRETTY_FUNCTION__, __LINE__);
+
+			if (!socketPool.emplace(sock, std::pair<uint8_t, std::shared_ptr<cserver::base>>(1, srv)).second || eventPoll.emplace(sock, cepoll::in | cepoll::hup | cepoll::offline | cepoll::err) < 0) {
+				throw core::system_error(errno);
+			}
+		}
+		catch (core::system_error & er) {
+			socketPool.erase(sock);
+			::close(sock);
+			throw;
+		}
+	}
+	else {
+		throw core::system_error(errno, "UDP-SERVER(socket)", __PRETTY_FUNCTION__, __LINE__);
+	}
+
+}
+
 uint64_t cserver::gettime() {
 	timespec now;
 	clock_gettime(CLOCK_REALTIME, &now);
 	return now.tv_sec * 1000;
+}
+
+inline void cserver::accept_tcp(uint32_t events,int sock, hserver&& server) throw() {
+	auto&& srv = server->second.second->get<cserver::tcp>();
+	/* accept new connection */
+	if (events == cepoll::in) {
+		sockaddr_storage sa;
+		socklen_t sa_len = sizeof(sockaddr_storage);
+		if (int soc = accept4(sock, (sockaddr*)&sa, &sa_len, SOCK_CLOEXEC | SOCK_NONBLOCK); soc > 0) {
+			if (auto&& cl_it = socketPool.find(soc); cl_it != socketPool.end()) {
+				eventPoll.remove(soc);
+				if (cl_it->second.second->type_id() == ttcp) {
+					auto&& cl_srv = cl_it->second.second->get<cserver::tcp>();
+					cl_srv.ondisconnect(soc);
+				}
+				else if (cl_it->second.second->type_id() == tpipe) {
+					auto&& cl_srv = cl_it->second.second->get<cserver::pipe>();
+					cl_srv.ondisconnect(soc);
+				}
+				cl_it->second = std::pair<uint8_t, std::shared_ptr<cserver::base>>(2, server->second.second);
+				eventPoll.emplace(soc, cepoll::in | cepoll::hup | cepoll::offline | cepoll::edge);
+				srv.onconnect(soc, sa, gettime());
+				//srv.ondata(soc);
+			}
+			else if (auto&& res = eventPoll.emplace(soc, cepoll::in | cepoll::hup | cepoll::offline | cepoll::edge); res == 0) {
+				//clientPool[eventList[i].data.fd].emplace(soc);
+				socketPool.emplace(soc, std::pair<uint8_t, std::shared_ptr<cserver::base>>(2, server->second.second));
+				srv.onconnect(soc, sa, gettime());
+			}
+			else {
+				fprintf(stderr, "server(%s) epoll emplace fail (%s)\n", srv.getname().c_str(), strerror((int)res));
+				::close(soc);
+			}
+		}
+		else {
+			fprintf(stderr, "server(%s) accept connection fail (%s)\n", srv.getname().c_str(), strerror(errno));
+		}
+	}
+	else {
+		throw std::runtime_error("server down");
+	}
+}
+
+inline void cserver::accept_udp(uint32_t events, int sock, hserver&& server) throw() {
+	auto&& srv = server->second.second->get<cserver::udp>();
+	/* accept new connection */
+	if (events == cepoll::in) {
+		srv.ondata(sock);
+	}
+	else {
+		throw std::runtime_error("server down");
+	}
+}
+
+inline void cserver::accept_pipe(uint32_t events, int sock, hserver&& server) throw() {
+	auto&& srv = server->second.second->get<cserver::pipe>();
+	/* accept new connection */
+	if (events & cepoll::in) {
+		sockaddr_storage sa;
+		socklen_t sa_len = sizeof(sockaddr_storage);
+		if (int soc = accept4(sock, (sockaddr*)&sa, &sa_len, SOCK_CLOEXEC); soc > 0) {
+			printf("new pipe socket: %d\n", soc);
+			if (auto&& cl_it = socketPool.find(soc); cl_it != socketPool.end()) {
+				eventPoll.remove(soc);
+				if (cl_it->second.second->type_id() == ttcp) {
+					auto&& cl_srv = cl_it->second.second->get<cserver::tcp>();
+					cl_srv.ondisconnect(soc);
+				}
+				else if (cl_it->second.second->type_id() == tpipe) {
+					auto&& cl_srv = cl_it->second.second->get<cserver::pipe>();
+					cl_srv.ondisconnect(soc);
+				}
+				cl_it->second = std::pair<uint8_t, std::shared_ptr<cserver::base>>(2, server->second.second);
+				eventPoll.emplace(soc, cepoll::in | cepoll::hup | cepoll::offline | cepoll::edge);
+				srv.onconnect(soc, sa, gettime());
+				//srv.ondata(soc);
+			}
+			else if (auto&& res = eventPoll.emplace(soc, cepoll::in | cepoll::hup | cepoll::offline | cepoll::edge); res == 0) {
+				//clientPool[eventList[i].data.fd].emplace(soc);
+				socketPool.emplace(soc, std::pair<uint8_t, std::shared_ptr<cserver::base>>(2, server->second.second));
+				srv.onconnect(soc, sa, gettime());
+			}
+			else {
+				fprintf(stderr, "server(%s) epoll emplace fail (%s)\n", srv.getname().c_str(), strerror((int)res));
+				::close(soc);
+			}
+		}
+		else {
+			fprintf(stderr, "server(%s) accept connection fail (%s)\n", srv.getname().c_str(), strerror(errno));
+		}
+	}
+	else {
+		throw std::runtime_error("server down");
+	}
+}
+
+inline void cserver::accept_tcpclient(uint32_t events, int sock, hserver&& server) throw() {
+	auto&& srv = server->second.second->get<cserver::tcp>();
+	if (events == cepoll::in) {
+		srv.ondata(sock);
+	}
+	else if (events == cepoll::out) {
+		srv.onwrite(sock);
+	}
+	else {
+		/* client is down */
+		eventPoll.remove(sock);
+		socketPool.erase(sock);
+		::close(sock);
+		srv.ondisconnect(sock);
+	}
+}
+
+inline void cserver::accept_tcptimer(uint32_t events, int sock, hserver&& server) throw() {
+	auto&& srv = server->second.second->get<cserver::tcp>();
+	uint64_t time;
+	if (::read(server->first, &time, sizeof(time)) > 0) {
+		srv.onidle(gettime());
+	}
 }
 
 ssize_t cserver::listen(ssize_t timeout_milisecond) {
@@ -168,98 +324,22 @@ ssize_t cserver::listen(ssize_t timeout_milisecond) {
 			if (auto&& so_it = socketPool.find(eventList[i].data.fd); so_it != socketPool.end()) {
 				if (so_it->second.first == 1) {
 					if (so_it->second.second->type_id() == ttcp) {
-						auto&& srv = so_it->second.second->get<cserver::tcp>();
-						/* accept new connection */
-						if (eventList[i].events == cepoll::in) {
-							sockaddr_storage sa;
-							socklen_t sa_len = sizeof(sockaddr_storage);
-							if (int soc = accept4(eventList[i].data.fd, (sockaddr*)&sa, &sa_len, SOCK_CLOEXEC | SOCK_NONBLOCK); soc > 0) {
-								if (auto&& cl_it = socketPool.find(soc); cl_it != socketPool.end()) {
-									eventPoll.remove(soc);
-									if (cl_it->second.second->type_id() == ttcp) {
-										auto&& cl_srv = cl_it->second.second->get<cserver::tcp>();
-										cl_srv.ondisconnect(soc);
-									}
-									cl_it->second = std::pair<uint8_t, std::shared_ptr<cserver::base>>(2, so_it->second.second);
-									eventPoll.emplace(soc, cepoll::in | cepoll::hup | cepoll::offline | cepoll::edge);
-									srv.onconnect(soc, sa,gettime());
-									//srv.ondata(soc);
-								}
-								else if (auto&& res = eventPoll.emplace(soc, cepoll::in | cepoll::hup | cepoll::offline | cepoll::edge); res == 0) {
-									//clientPool[eventList[i].data.fd].emplace(soc);
-									socketPool.emplace(soc, std::pair<uint8_t, std::shared_ptr<cserver::base>>(2, so_it->second.second));
-									srv.onconnect(soc, sa,gettime());
-								}
-								else {
-									fprintf(stderr, "server(%s) epoll emplace fail (%s)\n", srv.getname().c_str(), strerror((int)res));
-									::close(soc);
-								}
-							}
-							else {
-								fprintf(stderr, "server(%s) accept connection fail (%s)\n", srv.getname().c_str(), strerror(errno));
-							}
-						}
-						else {
-							throw std::runtime_error("server down");
-							/* server is down * /
-							srv.onshutdown();
-							/ * remove clients and close connection * /
-							eventPoll.remove(eventList[i].data.fd);
-							::close(eventList[i].data.fd);
-							for (auto&& cl_it = clientPool[eventList[i].data.fd].begin(); cl_it != clientPool[eventList[i].data.fd].end(); ++cl_it) {
-								socketPool.erase(*cl_it);
-								eventPoll.remove(*cl_it);
-								srv.onclose(*cl_it);
-								::close(*cl_it);
-							}
-							clientPool.erase(eventList[i].data.fd);
-							socketPool.erase(eventList[i].data.fd);
-							*/
-						}
+						accept_tcp(eventList[i].events, eventList[i].data.fd, std::move(so_it));
+					}
+					else if (so_it->second.second->type_id() == tpipe) {
+						accept_pipe(eventList[i].events, eventList[i].data.fd, std::move(so_it));
 					}
 					else if (so_it->second.second->type_id() == tudp) {
-						auto&& srv = so_it->second.second->get<cserver::udp>();
-						/* accept new connection */
-						if (eventList[i].events == cepoll::in) {
-							srv.ondata(eventList[i].data.fd);
-						}
-						else {
-							/* server is down * /
-							srv.onshutdown();
-							/ * remove clients and close connection * /
-							eventPoll.remove(eventList[i].data.fd);
-							::close(eventList[i].data.fd);
-							socketPool.erase(eventList[i].data.fd);
-							*/
-							throw std::runtime_error("server down");
-						}
+						accept_udp(eventList[i].events, eventList[i].data.fd, std::move(so_it));
 					}
 					continue;
 				}
 				else if (so_it->second.first == 2 /* tcp client */) {
-					auto&& srv = so_it->second.second->get<cserver::tcp>();
-					if (eventList[i].events == cepoll::in) {
-						srv.ondata(eventList[i].data.fd);
-					}
-					else if (eventList[i].events == cepoll::out) {
-						srv.onwrite(eventList[i].data.fd);
-					}
-					else {
-						/* client is down */
-						eventPoll.remove(eventList[i].data.fd);
-						socketPool.erase(eventList[i].data.fd);
-						::close(eventList[i].data.fd);
-						srv.ondisconnect(eventList[i].data.fd);
-						//clientPool[so_it->first].erase(eventList[i].data.fd);
-					}
+					accept_tcpclient(eventList[i].events, eventList[i].data.fd, std::move(so_it));
 					continue;
 				}
 				else if (so_it->second.first == 3 /* timer */) {
-					auto&& srv = so_it->second.second->get<cserver::tcp>();
-					uint64_t time;
-					if (::read(so_it->first, &time, sizeof(time)) > 0) {
-						srv.onidle(gettime());
-					}
+					accept_tcptimer(eventList[i].events, eventList[i].data.fd, std::move(so_it));
 					continue;
 				}
 			}

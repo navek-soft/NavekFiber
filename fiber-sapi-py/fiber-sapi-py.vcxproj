@@ -35,9 +35,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{391dc8be-5095-40d8-b7d6-92fe0cd38d68}</ProjectGuid>
+    <ProjectGuid>{eb84091d-e7bd-4fbc-b478-8881d8a41817}</ProjectGuid>
     <Keyword>Linux</Keyword>
-    <RootNamespace>fiber_bus</RootNamespace>
+    <RootNamespace>fiber_sapi_py</RootNamespace>
     <MinimumVisualStudioVersion>15.0</MinimumVisualStudioVersion>
     <ApplicationType>Linux</ApplicationType>
     <ApplicationTypeRevision>1.0</ApplicationTypeRevision>
@@ -79,59 +79,29 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
   <ItemGroup>
-    <ClCompile Include="core\cpoll.cpp" />
-    <ClCompile Include="core\cserver.cpp" />
-    <ClCompile Include="core\cthreadpool.cpp" />
     <ClCompile Include="core\coption.cpp" />
+    <ClCompile Include="fiber-sapi-py.cpp" />
+    <ClCompile Include="py\csapi-python.cpp" />
+    <ClCompile Include="sapi\cfpm.cpp" />
     <ClCompile Include="sapi\csapi.cpp" />
-    <ClCompile Include="sapi\fpm.cpp" />
-    <ClCompile Include="server\capp.cpp" />
-    <ClCompile Include="server\cbroker.cpp" />
-    <ClCompile Include="server\channel\cchannel-sync.cpp" />
-    <ClCompile Include="server\channel\cchannel.cpp" />
     <ClCompile Include="server\crequest.cpp" />
-    <ClCompile Include="server\chttpserver.cpp" />
-    <ClCompile Include="fiber-bus.cpp" />
-    <ClCompile Include="server\channel\cchannel-queue.cpp" />
-    <ClCompile Include="server\csapiserver.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="core\csignal.h" />
-    <ClInclude Include="sapi\fpm.h" />
-    <ClInclude Include="server\capp.h" />
-    <ClInclude Include="server\channel\cchannel-queue.h" />
-    <ClInclude Include="server\channel\cchannel-sync.h" />
-    <ClInclude Include="server\cmemory.h" />
     <ClInclude Include="ci\cstring.h" />
     <ClInclude Include="core\cexcept.h" />
-    <ClInclude Include="core\cchrono.h" />
-    <ClInclude Include="core\cpoll.h" />
-    <ClInclude Include="core\cserver.h" />
-    <ClInclude Include="core\cthreadpool.h" />
     <ClInclude Include="core\coption.h" />
-    <ClInclude Include="core\memcpy.h" />
-    <ClInclude Include="lib\concurrentqueue\concurrentqueue.h" />
-    <ClInclude Include="server\cbroker.h" />
-    <ClInclude Include="server\crequest.h" />
-    <ClInclude Include="server\chttpserver.h" />
-    <ClInclude Include="server\csapiserver.h" />
-    <ClInclude Include="server\curi.h" />
-    <ClInclude Include="server\pch.h" />
-    <ClInclude Include="server\channel\cchannel.h" />
+    <ClInclude Include="core\csignal.h" />
+    <ClInclude Include="py\csapi-python.h" />
     <ClInclude Include="sapi\csapi.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="channel-queue.ebnf" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="README.md" />
+    <ClInclude Include="sapi\cfpm.h" />
+    <ClInclude Include="server\crequest.h" />
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <CppLanguageStandard>c++17</CppLanguageStandard>
     </ClCompile>
     <Link>
-      <LibraryDependencies>pthread;curl</LibraryDependencies>
+      <LibraryDependencies>pthread;python3.6m;dl;util;m</LibraryDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -139,7 +109,7 @@
       <CppLanguageStandard>c++17</CppLanguageStandard>
     </ClCompile>
     <Link>
-      <LibraryDependencies>pthread</LibraryDependencies>
+      <LibraryDependencies>pthread;python3.6m;dl;util;m</LibraryDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

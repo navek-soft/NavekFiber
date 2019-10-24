@@ -5,6 +5,4 @@
 int main(int argc,char* argv[])
 {
 	return fiber::capp::run(argc, argv);
-	return 0;
-
 }

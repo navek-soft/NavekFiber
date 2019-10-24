@@ -6,6 +6,7 @@
 #include <endian.h>
 #include <cstdarg>
 #include "capp.h"
+#include <netinet/tcp.h>
 
 using namespace fiber;
 
@@ -39,6 +40,10 @@ void chttpserver::onconnect(int soc, const sockaddr_storage&, uint64_t time) con
 		req.first->second.get()->reset();
 		req.first->second->update_time();
 	}
+	else {
+		int opt = 1;	setsockopt(soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof(opt));
+		opt = 30;		setsockopt(soc, IPPROTO_TCP, TCP_KEEPINTVL, &opt, sizeof(opt));
+	}
 	//printf("onconnect (%ld)\n", soc);
 	//struct timeval tv = { optReceiveTimeout / 1000, optReceiveTimeout % 1000 };
 	//setsockopt(soc, SOL_SOCKET, SO_RCVTIMEO, (struct timeval*) & tv, sizeof(struct timeval));
@@ -70,17 +75,6 @@ void chttpserver::ondata(int soc) const {
 		if (result == 200) {
 			capp::broker().enqueue(std::shared_ptr<fiber::crequest>(cli->second));
 			requestsClient.erase(cli);
-			
-			/*printf("(%ld) complete request...", soc);
-
-			ci::cstringformat response;
-			response.append("{\"Modifed\":\"%s\"}", "success");
-			response.append("test codeset");
-			cli->second->response(response, 200, {}, { { "X-Server","NavekFiber ESB" } });
-			printf("success (%lu,%lu)\n", cli->second->request_length(), cli->second->request_paload_length());
-			cli->second->disconnect();
-			requestsClient.erase(cli);
-			fflush(stdout);*/
 		}
 		else if (result == 202) {
 			printf("(%ld) more data\n", soc);
@@ -252,7 +246,7 @@ size_t chttpserver::request::response(const uint8_t* response_data, ssize_t resp
 }
 
 
-size_t chttpserver::request::response(const crequest::payload& data, size_t data_length, size_t msg_code, const std::string& msg_text, const std::unordered_map<std::string, std::string>& headers_list) {
+ssize_t chttpserver::request::response(const crequest::payload& data, size_t data_length, size_t msg_code, const std::string& msg_text, const std::unordered_map<std::string, std::string>& headers_list) {
 	if (reqSocket > 0) {
 		ci::cstringformat response_data;
 		ssize_t result = -1;
@@ -296,7 +290,7 @@ size_t chttpserver::request::response(const crequest::payload& data, size_t data
 }
 
 
-size_t chttpserver::request::response(const ci::cstringformat& data, size_t msg_code, const std::string& msg_text, const std::unordered_map<std::string, std::string>& headers_list) {
+ssize_t chttpserver::request::response(const ci::cstringformat& data, size_t msg_code, const std::string& msg_text, const std::unordered_map<std::string, std::string>& headers_list) {
 	if (reqSocket > 0) {
 		ci::cstringformat response_data;
 		ssize_t result = -1;

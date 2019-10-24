@@ -108,12 +108,10 @@ void cchannel_queue::OnHEAD(const cmsgid&& msg_id, const std::string&& path, con
 		std::shared_lock<std::shared_mutex> lock(msgSync);
 		if (!msgQueue.empty()) {
 			if (auto&& req_msg = msgPool.find(msgQueue.front()); req_msg != msgPool.end()) {
-				if (msg_status(req_msg->second) != crequest::complete) {
-					request->response({}, 200, {}, 
-						make_headers(req_msg->first, msg_ctime(req_msg->second), msg_mtime(req_msg->second), msg_status(req_msg->second), "ASYNC-QUEUE"));
-					request->disconnect();
-					return;
-				}
+				request->response({}, 200, {},
+					make_headers(req_msg->first, msg_ctime(req_msg->second), msg_mtime(req_msg->second), msg_status(req_msg->second), "ASYNC-QUEUE"));
+				request->disconnect();
+				return;
 			}
 		}
 		request->response({}, 204, "Queue is empty", { { "X-FIBER-MSG-QUEUE","ASYNC-QUEUE" } });
