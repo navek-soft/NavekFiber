@@ -12,7 +12,7 @@
 
 using namespace core;
 
-void cserver::emplace_tcp(std::shared_ptr<cserver::base>&& srv) throw() {
+void cserver::emplace_tcp(std::shared_ptr<cserver::base>&& srv) noexcept(false) {
 	auto&& server = srv.get()->get<tcp>();
 	if (int sock = socket(AF_INET, (int)server.soType | SOCK_NONBLOCK, (int)server.soProtocol); sock > 0) {
 		try {
@@ -112,7 +112,7 @@ void cserver::emplace_tcp(std::shared_ptr<cserver::base>&& srv) throw() {
 	}
 }
 
-void cserver::emplace_udp(std::shared_ptr<cserver::base>&& srv) throw() {
+void cserver::emplace_udp(std::shared_ptr<cserver::base>&& srv) noexcept(false) {
 	auto&& server = srv.get()->get<udp>();
 
 	if (int sock = socket(AF_INET, (int)server.soType | SOCK_NONBLOCK, (int)server.soProtocol); sock > 0) {
@@ -155,7 +155,7 @@ void cserver::emplace_udp(std::shared_ptr<cserver::base>&& srv) throw() {
 
 }
 
-void cserver::emplace_pipe(std::shared_ptr<cserver::base>&& srv) throw() {
+void cserver::emplace_pipe(std::shared_ptr<cserver::base>&& srv) noexcept(false) {
 	auto&& server = srv.get()->get<pipe>();
 	
 	if (int sock = socket(AF_UNIX, (int)server.soType,0); sock > 0) {
@@ -197,7 +197,7 @@ uint64_t cserver::gettime() {
 	return now.tv_sec * 1000;
 }
 
-inline void cserver::accept_tcp(uint32_t events,int sock, hserver&& server) throw() {
+inline void cserver::accept_tcp(uint32_t events,int sock, hserver&& server) noexcept(false) {
 	auto&& srv = server->second.second->get<cserver::tcp>();
 	/* accept new connection */
 	if (events == cepoll::in) {
@@ -238,7 +238,7 @@ inline void cserver::accept_tcp(uint32_t events,int sock, hserver&& server) thro
 	}
 }
 
-inline void cserver::accept_udp(uint32_t events, int sock, hserver&& server) throw() {
+inline void cserver::accept_udp(uint32_t events, int sock, hserver&& server) noexcept(false) {
 	auto&& srv = server->second.second->get<cserver::udp>();
 	/* accept new connection */
 	if (events == cepoll::in) {
@@ -249,7 +249,7 @@ inline void cserver::accept_udp(uint32_t events, int sock, hserver&& server) thr
 	}
 }
 
-inline void cserver::accept_pipe(uint32_t events, int sock, hserver&& server) throw() {
+inline void cserver::accept_pipe(uint32_t events, int sock, hserver&& server) noexcept(false) {
 	auto&& srv = server->second.second->get<cserver::pipe>();
 	/* accept new connection */
 	if (events & cepoll::in) {
@@ -291,7 +291,7 @@ inline void cserver::accept_pipe(uint32_t events, int sock, hserver&& server) th
 	}
 }
 
-inline void cserver::accept_tcpclient(uint32_t events, int sock, hserver&& server) throw() {
+inline void cserver::accept_tcpclient(uint32_t events, int sock, hserver&& server) noexcept(false) {
 	auto&& srv = server->second.second->get<cserver::tcp>();
 	if (events == cepoll::in) {
 		srv.ondata(sock);
@@ -308,7 +308,7 @@ inline void cserver::accept_tcpclient(uint32_t events, int sock, hserver&& serve
 	}
 }
 
-inline void cserver::accept_tcptimer(uint32_t events, int sock, hserver&& server) throw() {
+inline void cserver::accept_tcptimer(uint32_t events, int sock, hserver&& server) noexcept(false) {
 	auto&& srv = server->second.second->get<cserver::tcp>();
 	uint64_t time;
 	if (::read(server->first, &time, sizeof(time)) > 0) {

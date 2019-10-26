@@ -8,8 +8,8 @@ int main(int argc, char* argv[])
 {
 	core::coptions options;
 	options.emplace("fpm-num-workers", "5").
-		emplace("fpm-enable-resurrect", "0").
-		emplace("fpm-pipe", "/tmp/navekfiber-fpm-python");
+		emplace("fpm-enable-resurrect", "1").
+		emplace("fpm-pipe", "/tmp/navekfiber-fpm");
 
 	try {
 		fiber::cfpm::run(std::unique_ptr<fiber::csapi>(new fiber::csapi_python(options)), options);

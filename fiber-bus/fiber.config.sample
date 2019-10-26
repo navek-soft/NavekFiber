@@ -1,0 +1,41 @@
+[server]
+	[[restful]]
+		listen = :8080
+		query-limit = 1M # 0 - unlimit, default 1048576
+		header-limit = 4K # 0 - unlimit, default 8192
+
+	[[websocket]]
+		listen = :8081
+		query-limit = 1M # 0 - unlimit
+
+	[[sapi]]
+		sapi-pipe = "unix:///tmp/navekfiber-fpm"
+
+	[[threadpool]]
+		thread-workers = 10
+		core-bind = 2-12
+		core-exclude = 3,4
+
+[fpm]
+	[[python]]
+		fpm-sapi-pipe = "unix:///tmp/navekfiber-fpm"
+		fpm-num-workers = 10 
+		fpm-enable-resurrect = 1 # always support workers pool
+		fpm-params-transfer = stdin #, env
+		fpm-ini-config = 
+
+	[[php]]
+		fpm-sapi-pipe = "unix:///tmp/navekfiber-fpm"
+		fpm-num-workers = 10 
+		fpm-enable-resurrect = 1 # always support workers pool
+		fpm-params-transfer = stdin #, env
+		fpm-ini-config = 
+
+[channels]
+	[[sample-python]]
+		channel-endpoint = sync://sample-python/task1/	# sync, async
+		channel-durability = none						#,transaction, persistent
+		channel-sapi = python://sample-python-test.py	# php:// python:// lua:// | mysql:// pgsql:// json:// http:// ws://
+		channel-sapi-task-limit = 0						# number of parallel execution tasks, 0 - unlimited
+		channel-sapi-request-limit = 0					# timeout before next request execution
+		queue-limit-capacity = 0						# 0 - unlimited, count of messages in queue

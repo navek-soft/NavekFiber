@@ -21,7 +21,7 @@ namespace fiber {
 			uint64_t	type	: 8;
 			uint64_t	argc	: 6;
 			union {
-				char* argv[0];
+				char argv[0];
 				uint8_t buffer[0];
 			};
 		};
@@ -62,6 +62,7 @@ namespace fiber {
 			inline void emplace(const ci::cstringformat& data) { msgPayload.emplace_back(data.str()); }
 			inline void emplace(const std::string& data) { msgPayload.emplace_back(data); }
 			ssize_t reply(int sock,const std::string& uri, size_t msg_code, crequest::type msg_type, const crequest::response_headers& headers_list = {});
+			ssize_t reply(int sock,const crequest::payload& payload, size_t payload_length, const std::string& uri, size_t msg_code, crequest::type msg_type, const crequest::response_headers& headers_list = {});
 		};
 	public:
 		csapi(const core::coption& connection_string);

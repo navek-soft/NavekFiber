@@ -38,6 +38,7 @@ namespace fiber {
 		}
 		inline bool epmty() { auto&& _u64 = u64(); return _u64[0] == _u64[1] && _u64[1] == 0; }
 		inline bool operator == (const cmsgid& m) const { return std::memcmp(id_uid,m.id_uid,sizeof(id_uid)) == 0; }
+		inline bool operator != (const cmsgid& m) const { return std::memcmp(id_uid, m.id_uid, sizeof(id_uid)) != 0; }
 		inline cmsgid& operator = (const cmsgid& m) { id_sequence = m.id_sequence; no_sequence = m.no_sequence; std::memcpy(id_uid, m.id_uid, sizeof(id_uid)); return *this; }
 		inline size_t hash() const { uint64_t* i64_id = (uint64_t*)id_uid;	return 0x5bd1e9955bd1e995ull ^ i64_id[0] ^ i64_id[1];}
 		static inline cmsgid gen() { 

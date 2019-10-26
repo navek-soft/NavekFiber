@@ -83,8 +83,8 @@
     <ClCompile Include="core\cserver.cpp" />
     <ClCompile Include="core\cthreadpool.cpp" />
     <ClCompile Include="core\coption.cpp" />
+    <ClCompile Include="sapi\cfpm.cpp" />
     <ClCompile Include="sapi\csapi.cpp" />
-    <ClCompile Include="sapi\fpm.cpp" />
     <ClCompile Include="server\capp.cpp" />
     <ClCompile Include="server\cbroker.cpp" />
     <ClCompile Include="server\channel\cchannel-sync.cpp" />
@@ -97,7 +97,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="core\csignal.h" />
-    <ClInclude Include="sapi\fpm.h" />
+    <ClInclude Include="sapi\cfpm.h" />
     <ClInclude Include="server\capp.h" />
     <ClInclude Include="server\channel\cchannel-queue.h" />
     <ClInclude Include="server\channel\cchannel-sync.h" />
@@ -122,6 +122,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="channel-queue.ebnf" />
+    <None Include="fiber.config.sample" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="README.md" />

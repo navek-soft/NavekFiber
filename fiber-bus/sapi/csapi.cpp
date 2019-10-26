@@ -30,7 +30,7 @@ int csapi::run() {
 
 	memset(&serveraddr, 0, sizeof(serveraddr));
 	serveraddr.sun_family = AF_UNIX;
-	strncpy(serveraddr.sun_path, std::string("/" + sapiConnection.path + sapiConnection.filename).c_str(), sizeof(serveraddr.sun_path) - 1);
+	strncpy(serveraddr.sun_path, std::string(sapiConnection.path + sapiConnection.filename).c_str(), sizeof(serveraddr.sun_path) - 1);
 
 	struct pollfd polllist[1]{ {.fd = 0,.events = POLLIN | POLLERR | POLLHUP | POLLNVAL} };
 
@@ -65,6 +65,8 @@ int csapi::run() {
 							ondata(sapiSocket);
 						}
 						polllist[0].revents = 0;
+						isContinue = false;
+						break;
 					}
 					else if (nevents == -1) {
 						printf("(%ld) sapi-fpm poll-error: %s (%d)\n", getpid(), strerror(errno), errno);
@@ -97,12 +99,56 @@ int csapi::run() {
 	return 0;
 }
 
+ssize_t csapi::response::reply(int sock, const crequest::payload& payload, size_t payload_length, const std::string& uri, size_t msg_code, crequest::type msg_type, const crequest::response_headers& headers_list) {
+	size_t headers_length = uri.length() + 1;
+
+	for (auto&& p : headers_list) {
+		headers_length += p.first.length() + 2 + p.second.length() + 1 /* always zero endian data string */;
+	}
+
+	auto&& msg = (csapi::header*) alloca(headers_length + sizeof(csapi::header) + payload_length);
+#pragma GCC diagnostic ignored "-Wconversion"
+	msg->poffset = (headers_length + sizeof(csapi::header));
+	msg->tlen = headers_length + sizeof(csapi::header) + payload_length;
+	msg->code = msg_code;
+	msg->type = msg_type;
+	msg->argc = 1 /* uri is first argv[0] */ + headers_list.size();
+#pragma GCC diagnostic warning "-Wconversion"	
+	uint8_t* buffer = msg->buffer;
+
+	{	// uri add
+		memcpy(buffer, uri.data(), uri.length());
+		buffer += uri.length() + 1;
+		*(buffer - 1) = '\0';
+	}
+	for (auto&& p : headers_list) {
+		memcpy(buffer, p.first.data(), p.first.length());
+		buffer += p.first.length() + 2;
+		memcpy(buffer - 2, ": ", 2);
+		memcpy(buffer, p.second.data(), p.second.length());
+		buffer += p.second.length() + 1;
+		*(buffer - 1) = '\0';
+	}
+
+	for (auto&& p : msgPayload) {
+		memcpy(buffer, p.data(), p.length());
+		buffer += p.length();
+	}
+
+	if (auto&& result = ::send(sock, msg, msg->tlen, 0); result == msg->tlen) {
+		return 200;
+	}
+	fprintf(stderr, "[http-server(%s)]. error response send (%s)\n", strerror(errno));
+	return 523;
+}
+
+
 ssize_t csapi::response::reply(int sock, const std::string& uri, size_t msg_code, crequest::type msg_type, const crequest::response_headers& headers_list) {
 	size_t payload_length = 0;
 	size_t headers_length = uri.length() + 1;
 
 	for (auto&& p : headers_list) {
-		headers_length += p.first.length() + sizeof(": ") + p.second.length() + 1 /* always zero endian data string */;
+		headers_length += p.first.length() + 2 + p.second.length() + 1 /* always zero endian data string */;
 	}
 
 	for (auto&& p : msgPayload) {
@@ -125,7 +171,8 @@ ssize_t csapi::response::reply(int sock, const std::string& uri, size_t msg_code
 	}
 	for (auto&& p : headers_list) {
 		memcpy(buffer, p.first.data(), p.first.length());
-		memcpy(buffer, ": ", sizeof(": "));
+		buffer += p.first.length() + 2;
+		memcpy(buffer - 2, ": ", 2);
 		memcpy(buffer, p.second.data(), p.second.length());
 		buffer += p.second.length() + 1;
 		*(buffer - 1) = '\0';
@@ -151,15 +198,20 @@ csapi::request::request(int sock) : msgSocket(sock) {
 			auto&& msg = get();
 			
 			/* parse uri */
-			msgUri.assign(msg->argv[0], msg->argv[0] + std::strlen(msg->argv[0]));
+			uint8_t* ptr = msg->buffer;
+			msgUri.assign(ptr, ptr + std::strlen((char*)ptr));
 			/* parse payload */
+
+			ptr = msgUri.end() + 1;
+
 			msgPayload.emplace_back(ci::cstringview(((uint8_t*)msg) + msg->poffset, ((uint8_t*)msg) + msg->tlen));
 
 			/* parse headers */
 			for (size_t n = 1; n < msg->argc; n++) {
-				ci::cstringview line(msg->argv[n], msg->argv[n] + std::strlen(msg->argv[n]));
+				ci::cstringview line(ptr, ptr + std::strlen((char*)ptr));
 				auto&& pair = line.explode(':', 1);
 				msgHeaders.emplace(ci::cstringview(pair.front().begin(), pair.front().end() - 1), pair.back());
+				ptr = line.end() + 1;
 			}
 			return;
 		}

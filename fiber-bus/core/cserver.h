@@ -110,7 +110,7 @@ namespace core {
 		cserver(size_t max_num_events = 1000) noexcept : eventPoll(), eventList(max_num_events) { ; }
 		virtual ~cserver() noexcept { shutdown(); }
 
-		inline void emplace(std::shared_ptr<cserver::base>&& server) throw() {
+		inline void emplace(std::shared_ptr<cserver::base>&& server) noexcept(false) {
 			if (server->type_id() == cserver::ttcp) {
 				emplace_tcp(std::move(server));
 			}
@@ -135,14 +135,14 @@ namespace core {
 		cepoll::events											eventList;
 	private:
 		using hserver = typename std::unordered_map<int, std::pair<uint8_t, std::shared_ptr<cserver::base>>>::iterator;
-		void emplace_tcp(std::shared_ptr<cserver::base>&& server) throw();
-		void emplace_udp(std::shared_ptr<cserver::base>&& server) throw();
-		void emplace_pipe(std::shared_ptr<cserver::base>&& server) throw();
+		void emplace_tcp(std::shared_ptr<cserver::base>&& server) noexcept(false);
+		void emplace_udp(std::shared_ptr<cserver::base>&& server) noexcept(false);
+		void emplace_pipe(std::shared_ptr<cserver::base>&& server) noexcept(false);
 
-		inline void accept_tcp(uint32_t events, int sock,hserver&& server) throw();
-		inline void accept_udp(uint32_t events, int sock, hserver&& server) throw();
-		inline void accept_pipe(uint32_t events, int sock, hserver&& server) throw();
-		inline void accept_tcpclient(uint32_t events, int sock, hserver&& server) throw();
-		inline void accept_tcptimer(uint32_t events, int sock, hserver&& server) throw();
+		inline void accept_tcp(uint32_t events, int sock,hserver&& server) noexcept(false);
+		inline void accept_udp(uint32_t events, int sock, hserver&& server) noexcept(false);
+		inline void accept_pipe(uint32_t events, int sock, hserver&& server) noexcept(false);
+		inline void accept_tcpclient(uint32_t events, int sock, hserver&& server) noexcept(false);
+		inline void accept_tcptimer(uint32_t events, int sock, hserver&& server) noexcept(false);
 	};
 }
