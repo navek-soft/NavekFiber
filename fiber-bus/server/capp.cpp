@@ -18,9 +18,9 @@ void capp::dispatch(std::shared_ptr<fiber::crequest>&& msg) {
 	if (auto&& ptr = gEsbBroker.lock(); ptr) { ptr->enqueue(std::move(msg)); }
 }
 
-void capp::execute(cmsgid& msg_id, const std::string& sapi, const std::string& execscript, size_t task_limit, size_t task_timeout,  std::shared_ptr<fiber::crequest>&& msg) {
+void capp::execute(cmsgid& msg_id, const std::string& sapi, const std::string& execscript, std::size_t task_limit, std::size_t task_timeout,  std::shared_ptr<fiber::crequest>&& msg) {
 	std::weak_ptr<fiber::csapiserver> lock(gEsbSapi);
-	if (auto&& ptr = gEsbSapi.lock(); ptr) { ptr->execute(sapi, execscript, task_limit, task_timeout,msg); }
+	if (auto&& ptr = gEsbSapi.lock(); ptr) { ptr->execute(sapi, execscript, task_limit, task_timeout, msg_id,msg); }
 }
 
 std::weak_ptr<core::cthreadpool> capp::threadpool() { 
@@ -38,7 +38,6 @@ int capp::run(int argc, char* argv[])
 
 	{
 		std::shared_ptr<fiber::cbroker> esbBroker(new fiber::cbroker(options));
-		fiber::cbroker esbBroker({});
 
 		gEsbBroker = esbBroker;
 		
@@ -67,9 +66,9 @@ int capp::run(int argc, char* argv[])
 			}
 			esbServer.shutdown();
 		}
-		gesbBroker = nullptr;
+		esbBroker.reset();
 	}
-	gesbThreadPool = nullptr;
-	esbThreadPool.join();
+	gEsbThreadPool.reset();
+	esbThreadPool->join();
 	return 0;
 }

@@ -24,10 +24,11 @@ cchannel_queue::~cchannel_queue() {
 
 void cchannel_queue::processing(const cmsgid& msg_id,const std::string& uri, const std::shared_ptr<fiber::crequest>& msg)
 {
-	//dispatch(std::move(msg_id), std::move(uri), msg);
-	capp::threadpool().enqueue([this](cmsgid msg_id, std::string uri, std::shared_ptr<fiber::crequest> request) {
-		dispatch(std::move(msg_id), std::move(uri), request);
-	}, msg_id, uri, msg);
+	if (auto&& pool = capp::threadpool().lock(); pool) {
+		pool->enqueue([this](cmsgid msg_id, std::string uri, std::shared_ptr<fiber::crequest> request) {
+			dispatch(std::move(msg_id), std::move(uri), request);
+			}, msg_id, uri, msg);
+	}
 }
 
 void cchannel_queue::OnGET(const cmsgid&& msg_id, const std::string&& path, const std::shared_ptr<fiber::crequest>& request) {

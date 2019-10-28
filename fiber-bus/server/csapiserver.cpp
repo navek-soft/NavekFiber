@@ -112,7 +112,7 @@ void csapiserver::whirligig() {
 							}
 						}
 						if (task->second.task_timeout) {
-							if ((ds_it->second.task_timestamp + task->second.task_timeout) >= std::time(nullptr)) {
+							if (std::time_t(ds_it->second.task_timestamp + task->second.task_timeout) >= std::time(nullptr)) {
 								/* can not execute task now, return back to queue */
 								pool.second.tasks.emplace(msg_id);
 								continue; // next task
@@ -167,7 +167,7 @@ repeat_with_next_socket:
 	}
 }
 
-ssize_t csapiserver::execute(const std::string& sapi, const std::string& execscript, size_t task_limit, size_t task_timeout, cmsgid& msg_id, const std::shared_ptr<crequest>& request) {
+ssize_t csapiserver::execute(const std::string& sapi, const std::string& execscript, std::size_t task_limit, std::size_t task_timeout, cmsgid& msg_id, const std::shared_ptr<crequest>& request) {
 	
 	if (auto&& pool = workerPool.find(sapi); pool != workerPool.end()) {
 		{
@@ -203,7 +203,7 @@ void csapiserver::ondata(int soc) const {
 
 		if (sapiList.find(sapi) != sapiList.end()) {
 			if (msg->response("SHELLO", "/", 200, crequest::connect, {}) == 200) {
-				size_t num_workers = 0;
+				std::size_t num_workers = 0;
 				{
 					std::unique_lock<std::mutex> lock(syncPool);
 					/* may be ondisconnect not call, for socket number? it is bad :(. if you want, handle this situation now */
@@ -212,7 +212,7 @@ void csapiserver::ondata(int soc) const {
 					num_workers = it.first->second.workers.size();
 				}
 				msg->disconnect(); /* for unix socket is dummy */
-				printf("sapi (connect): %s, worker-count: %ld\n", sapi.c_str(), it.first->second.size());
+				printf("sapi (connect): %s, worker-count: %ld\n", sapi.c_str(), num_workers);
 				return;
 			}
 			else {

@@ -70,7 +70,7 @@ namespace fiber {
 		csapiserver(const core::coptions& options);
 		virtual ~csapiserver();
 	public:
-		ssize_t execute(const std::string& sapi, const std::string& execscript,size_t task_limit, size_t task_timeout, cmsgid& msg_id, const std::shared_ptr<crequest>& request);
+		ssize_t execute(const std::string& sapi, const std::string& execscript,std::size_t task_limit, std::size_t task_timeout, cmsgid& msg_id, const std::shared_ptr<crequest>& request);
 		virtual void onshutdown() const;
 		virtual void onclose(int soc) const;
 		virtual void onconnect(int soc, const sockaddr_storage&, uint64_t) const;

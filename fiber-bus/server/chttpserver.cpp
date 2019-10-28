@@ -73,7 +73,7 @@ void chttpserver::ondata(int soc) const {
 		auto&& result = cli->second->get_chunk(optMaxRequestSize);
 		cli->second->update_time();
 		if (result == 200) {
-			capp::broker().enqueue(std::shared_ptr<fiber::crequest>(cli->second));
+			capp::dispatch(std::shared_ptr<fiber::crequest>(cli->second));
 			requestsClient.erase(cli);
 		}
 		else if (result == 202) {
