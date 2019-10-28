@@ -110,7 +110,6 @@
     <ClInclude Include="core\cthreadpool.h" />
     <ClInclude Include="core\coption.h" />
     <ClInclude Include="core\memcpy.h" />
-    <ClInclude Include="lib\concurrentqueue\concurrentqueue.h" />
     <ClInclude Include="server\cbroker.h" />
     <ClInclude Include="server\crequest.h" />
     <ClInclude Include="server\chttpserver.h" />
