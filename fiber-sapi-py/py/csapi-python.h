@@ -1,6 +1,7 @@
 #pragma once
 #include "../core/coption.h"
 #include "../sapi/csapi.h"
+#include <python3.6m/Python.h>
 
 namespace fiber {
 	class csapi_python : public csapi {
