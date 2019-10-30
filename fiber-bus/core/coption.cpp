@@ -17,8 +17,8 @@ namespace core {
 		static inline std::deque<std::string> explode_string(const std::string& string, const std::string& delimiter, bool trim) {
 			/* explode chains */
 			std::deque<std::string> list;
-			size_t start = 0;
-			size_t end = string.find(delimiter);
+			std::size_t start = 0;
+			std::size_t end = string.find(delimiter);
 			if (!string.empty()) {
 				while (end != std::string::npos)
 				{
@@ -60,14 +60,14 @@ namespace core {
 				return seq;
 			}
 
-			size_t seq_begin = 0, seq_end = 0;
+			std::size_t seq_begin = 0, seq_end = 0;
 
 			auto rit = begin.rbegin();
-			for (size_t multipler = 1; rit < begin.rend() && std::isdigit(*rit); rit++, multipler *= 10) {
+			for (std::size_t multipler = 1; rit < begin.rend() && std::isdigit(*rit); rit++, multipler *= 10) {
 				seq_begin += multipler * ((*rit) - '0');
 			}
 			rit = end.rbegin();
-			for (size_t multipler = 1; rit < end.rend() && std::isdigit(*rit); rit++, multipler *= 10) {
+			for (std::size_t multipler = 1; rit < end.rend() && std::isdigit(*rit); rit++, multipler *= 10) {
 				seq_end += multipler * ((*rit) - '0');
 			}
 			std::string prefix;
@@ -90,7 +90,7 @@ namespace core {
 	}
 }
 
-size_t core::coption::seconds() const {
+std::size_t core::coption::seconds() const {
 	static const std::regex re(R"((?:\s*(\d+)\s*h)?(?:\s*(\d+)\s*m)?(?:\s*(\d+)\s*s{0,1})?)");
 	std::smatch match;
 	if (!opt_value.empty() && std::regex_search(opt_value, match, re) && match.size() > 1) {
@@ -102,7 +102,7 @@ size_t core::coption::seconds() const {
 	return 0;
 }
 
-ssize_t core::coption::number(size_t base) const {
+ssize_t core::coption::number(std::size_t base) const {
 	if (!opt_value.empty()) {
 		return std::stoll(opt_value, 0, int(base));
 	}
@@ -126,7 +126,7 @@ double core::coption::decimal(ssize_t precision) const {
 /*
 * Convert string to number of byte (<N>[G|M|K|B])
 */
-size_t core::coption::bytes() const {
+std::size_t core::coption::bytes() const {
 	static const std::regex re(R"(\s*(\d+)\s*(G|M|K|B)?)");
 	std::smatch match;
 	if (!opt_value.empty() && std::regex_search(opt_value, match, re) && match.size() > 1) {
@@ -177,7 +177,7 @@ core::coption::dsn_params core::coption::dsn() const {
 	static const std::regex re_urn(R"((?:([\w-]+)://)?(?:([^:@]+)(?::([^@]+))?@)?([^:/$]+)(?::(\d+))?(?:$|(?:(/[^?$]*)(?:\?([^$]+))?$)))");
 	static const std::regex re_opt(R"(([\w-]+)=([^$&]+))");
 
-	std::string proto, user, pwd, host, port, path, filename;
+	std::string proto, user, pwd, host, port, path, filename, fullpathname;
 	std::unordered_map<std::string, std::string> options;
 
 	std::smatch match;
@@ -191,6 +191,7 @@ core::coption::dsn_params core::coption::dsn() const {
 			std::string pathname = match.str(6);
 			path = pathname.substr(0, pathname.find_last_of('/') + 1);
 			filename = pathname.substr(pathname.find_last_of('/') + 1);
+			fullpathname = match.str(4) + match.str(6);
 			{
 				std::string opts(match.str(7));
 				std::sregex_iterator next(opts.begin(), opts.end(), re_opt);
@@ -211,6 +212,8 @@ core::coption::dsn_params core::coption::dsn() const {
 			pathname += match.str(4) + match.str(6);
 			path = pathname.substr(0, pathname.find_last_of('/') + 1);
 			filename = pathname.substr(pathname.find_last_of('/') + 1);
+			fullpathname = pathname;
+
 			{
 				std::string opts(match.str(7));
 				std::sregex_iterator next(opts.begin(), opts.end(), re_opt);
@@ -223,5 +226,5 @@ core::coption::dsn_params core::coption::dsn() const {
 			}
 		}
 	}
-	return { opt_value, proto, user, pwd, host, port, path, filename,options };
+	return { opt_value, proto, user, pwd, host, port, path, filename,fullpathname,options };
 }

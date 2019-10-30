@@ -11,7 +11,7 @@ namespace fiber {
 			pointer* PoolHead{ nullptr }, * PoolTail{ nullptr }, * PoolIt{ nullptr };
 			std::mutex	PoolLock;
 		public:
-			pool(const size_t pool_size) {
+			pool(const std::size_t pool_size) {
 				PoolIt = PoolHead = ::new pointer[pool_size];
 				PoolTail = PoolHead + pool_size;
 			}
@@ -67,7 +67,7 @@ namespace fiber {
 				::delete[]((pointer)ptr);
 			}
 		};
-		static inline constexpr size_t mempoolFramePoolSize = 8192;
+		static inline constexpr std::size_t mempoolFramePoolSize = 8192;
 		static inline pool mempoolFrames { mempoolFramePoolSize };
 	public:
 		struct frame {

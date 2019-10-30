@@ -10,7 +10,7 @@
 using namespace fiber;
 
 std::weak_ptr<fiber::cbroker> gEsbBroker;
-std::weak_ptr<fiber::csapiserver> gEsbSapi;
+std::weak_ptr<core::cserver::base> gEsbSapi;
 std::weak_ptr<core::cthreadpool> gEsbThreadPool;
 
 void capp::dispatch(std::shared_ptr<fiber::crequest>&& msg) {
@@ -18,9 +18,12 @@ void capp::dispatch(std::shared_ptr<fiber::crequest>&& msg) {
 	if (auto&& ptr = gEsbBroker.lock(); ptr) { ptr->enqueue(std::move(msg)); }
 }
 
-void capp::execute(cmsgid& msg_id, const std::string& sapi, const std::string& execscript, std::size_t task_limit, std::size_t task_timeout,  std::shared_ptr<fiber::crequest>&& msg) {
-	std::weak_ptr<fiber::csapiserver> lock(gEsbSapi);
-	if (auto&& ptr = gEsbSapi.lock(); ptr) { ptr->execute(sapi, execscript, task_limit, task_timeout, msg_id,msg); }
+ssize_t capp::execute(const cmsgid& msg_id, const std::string& sapi, const std::string& execscript, std::size_t task_limit, std::size_t task_timeout, const std::shared_ptr<fiber::crequest>&& msg) {
+	std::weak_ptr<core::cserver::base> lock(gEsbSapi);
+	if (auto ptr = lock.lock(); ptr) {
+		return ((fiber::csapiserver*)ptr.get())->execute(sapi, execscript, task_limit, task_timeout, msg_id,msg);
+	}
+	return 0;
 }
 
 std::weak_ptr<core::cthreadpool> capp::threadpool() { 
@@ -41,7 +44,9 @@ int capp::run(int argc, char* argv[])
 
 		gEsbBroker = esbBroker;
 		
-		esbBroker->emplace("/btk/users/", std::shared_ptr<fiber::cchannel>(new fiber::cchannel_queue({})));
+		options.emplace("channel-sapi", "python://sample-python-test.py");
+
+		esbBroker->emplace("/btk/users/", std::shared_ptr<fiber::cchannel>(new fiber::cchannel_queue("btk-users",options)));
 		esbBroker->emplace("/btk/services/", std::shared_ptr<fiber::cchannel>(new fiber::cchannel_sync({})));
 
 		{
@@ -51,15 +56,18 @@ int capp::run(int argc, char* argv[])
 				optlist.emplace("port", "8080");
 				optlist.emplace("fpm-sapi-pipe", "/tmp/navekfiber-fpm");
 
+				auto&& sapiServer = std::shared_ptr<core::cserver::base>(new fiber::csapiserver(core::coptions(optlist)));
 
-				
+				gEsbSapi = sapiServer;
+
 				esbServer.emplace(std::shared_ptr<core::cserver::base>(new fiber::chttpserver(core::coptions(optlist))));
-				esbServer.emplace(std::shared_ptr<core::cserver::base>(new fiber::csapiserver(core::coptions(optlist))));
-			
+				esbServer.emplace(std::move(sapiServer));
 
 				while (esbServer.listen(-1) >= 0) {
 					;
 				}
+
+				printf("exit from main loop\n");
 			}
 			catch (core::system_error & er) {
 				printf("bus: catch exception `%s`\n", er.what());

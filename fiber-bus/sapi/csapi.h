@@ -15,11 +15,11 @@ namespace fiber {
 		friend class response;
 #pragma pack(push,1)
 		struct header {
-			uint64_t	tlen	: 22;
-			uint64_t	poffset	: 18;
-			uint64_t	code	: 10;
-			uint64_t	type	: 8;
-			uint64_t	argc	: 6;
+			uint64_t	tlen : 22;
+			uint64_t	poffset : 18;
+			uint64_t	code : 10;
+			uint64_t	type : 8;
+			uint64_t	argc : 6;
 			union {
 				char argv[0];
 				uint8_t buffer[0];
@@ -45,13 +45,14 @@ namespace fiber {
 			virtual const crequest::payload& request_paload();
 			virtual ssize_t request_paload_length();
 
-			virtual ssize_t response(const payload& data, size_t data_length, size_t msg_code, const std::string& msg_text = {}, const response_headers& headers_list = {}) { return -1; }
-			virtual ssize_t response(const ci::cstringformat& data, size_t msg_code, const std::string& msg_text = {}, const response_headers& headers_list = {}) { return -1; }
+			virtual ssize_t response(const payload& data, std::size_t data_length, std::size_t msg_code, const std::string& msg_text = {}, const response_headers& headers_list = {}) { return -1; }
+			virtual ssize_t response(const ci::cstringformat& data, std::size_t msg_code, const std::string& msg_text = {}, const response_headers& headers_list = {}) { return -1; }
 
-			virtual ssize_t response(const payload& data, const std::string& uri, size_t msg_code, crequest::type msg_type, const crequest::response_headers& headers_list = {});
-			virtual ssize_t response(const ci::cstringformat& data, const std::string& uri, size_t msg_code, crequest::type msg_type, const response_headers& headers_list = {});
+			virtual ssize_t response(const payload& data, const std::string& uri, std::size_t msg_code, crequest::type msg_type, const crequest::response_headers& headers_list = {});
+			virtual ssize_t response(const ci::cstringformat& data, const std::string& uri, std::size_t msg_code, crequest::type msg_type, const response_headers& headers_list = {});
 
 			virtual void disconnect() { ; }
+			inline ssize_t http_code() { if (auto&& h = get(); h) { return h->code; } return 0; }
 		};
 		class response {
 		private:
@@ -61,8 +62,8 @@ namespace fiber {
 			virtual ~response() { ; }
 			inline void emplace(const ci::cstringformat& data) { msgPayload.emplace_back(data.str()); }
 			inline void emplace(const std::string& data) { msgPayload.emplace_back(data); }
-			ssize_t reply(int sock,const std::string& uri, size_t msg_code, crequest::type msg_type, const crequest::response_headers& headers_list = {});
-			ssize_t reply(int sock,const crequest::payload& payload, size_t payload_length, const std::string& uri, size_t msg_code, crequest::type msg_type, const crequest::response_headers& headers_list = {});
+			ssize_t reply(int sock, const std::string& uri, std::size_t msg_code, crequest::type msg_type, const crequest::response_headers& headers_list = {});
+			ssize_t reply(int sock, const crequest::payload& payload, std::size_t payload_length, const std::string& uri, std::size_t msg_code, crequest::type msg_type, const crequest::response_headers& headers_list = {});
 		};
 	public:
 		csapi(const core::coption& connection_string);

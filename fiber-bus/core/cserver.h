@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include "cpoll.h"
+#include <csignal>
 
 namespace core {
 	class cserver {
@@ -52,7 +53,7 @@ namespace core {
 			friend class cserver;
 			int flagReuseAddress{ 0 }, flagNoDelay{ 0 }, flagFastOpen{ 0 }, flagReusePort{ 0 },
 				flagKeepAlive{ 0 }, optKeepAliveIdle = { 0 }, optKeepAliveInterval = { 0 }, optKeepAliveCountAttempts = { 0 }, optMaxConnections{ 0 }, optReceiveTimeout{ 0 };
-			size_t			nPort{ 0 }, soType{ 0 }, soProtocol{ 0 };
+			std::size_t			nPort{ 0 }, soType{ 0 }, soProtocol{ 0 };
 			std::string		sIp;
 			std::string		sIFace;
 		};
@@ -77,7 +78,7 @@ namespace core {
 		protected:
 			friend class cserver;
 			int flagReuseAddress{ 0 }, flagReusePort{ 0 };
-			size_t			nPort{ 0 }, soType{ 0 }, soProtocol{ 0 };
+			std::size_t			nPort{ 0 }, soType{ 0 }, soProtocol{ 0 };
 			std::string		sIp;
 			std::string		sIFace;
 		};
@@ -104,13 +105,13 @@ namespace core {
 			virtual void onwrite(int) const = 0; /* ready to send */
 		protected:
 			friend class cserver;
-			size_t			soType{ 0 };
+			std::size_t			soType{ 0 };
 			std::string		sPipeFilename;
 		};
-		cserver(size_t max_num_events = 1000) noexcept : eventPoll(), eventList(max_num_events) { ; }
+		cserver(std::size_t max_num_events = 1000) noexcept : eventPoll(), eventList(max_num_events) { signal(SIGPIPE, SIG_IGN); }
 		virtual ~cserver() noexcept { shutdown(); }
 
-		inline void emplace(std::shared_ptr<cserver::base>&& server) noexcept(false) {
+		inline void emplace(const std::shared_ptr<cserver::base>& server) noexcept(false) {
 			if (server->type_id() == cserver::ttcp) {
 				emplace_tcp(std::move(server));
 			}
@@ -135,9 +136,9 @@ namespace core {
 		cepoll::events											eventList;
 	private:
 		using hserver = typename std::unordered_map<int, std::pair<uint8_t, std::shared_ptr<cserver::base>>>::iterator;
-		void emplace_tcp(std::shared_ptr<cserver::base>&& server) noexcept(false);
-		void emplace_udp(std::shared_ptr<cserver::base>&& server) noexcept(false);
-		void emplace_pipe(std::shared_ptr<cserver::base>&& server) noexcept(false);
+		void emplace_tcp(const std::shared_ptr<cserver::base>& server) noexcept(false);
+		void emplace_udp(const std::shared_ptr<cserver::base>& server) noexcept(false);
+		void emplace_pipe(const std::shared_ptr<cserver::base>& server) noexcept(false);
 
 		inline void accept_tcp(uint32_t events, int sock,hserver&& server) noexcept(false);
 		inline void accept_udp(uint32_t events, int sock, hserver&& server) noexcept(false);

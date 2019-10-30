@@ -1,8 +1,9 @@
 #include "../pch.h"
 #include "cchannel-queue.h"
 #include "../capp.h"
-using namespace fiber;
 
+
+using namespace fiber;
 
 static inline auto& msg_status(cchannel_queue::message& msg) { return std::get<0>(msg); }
 static inline auto& msg_ctime(cchannel_queue::message& msg) { return std::get<1>(msg); }
@@ -10,12 +11,20 @@ static inline auto& msg_mtime(cchannel_queue::message& msg) { return std::get<2>
 static inline auto& msg_request(cchannel_queue::message& msg) { return std::get<3>(msg); }
 static inline auto& msg_response(cchannel_queue::message& msg) { return std::get<4>(msg); }
 
-cchannel_queue::cchannel_queue(const core::coptions& options) :
-	queueLimitCapacity(options.at("queue-capacity","0").number()),
-	queueLimitSapiSameTime(options.at("sapi-task-limit", "0").number()),
-	queueLimitSapiPeriodTime(options.at("sapi-time-period", "0").number())
+cchannel_queue::cchannel_queue(const std::string& name,const core::coptions& options) :
+	queueName(name),
+	queueLimitCapacity(options.at("queue-limit-capacity","0").number()),
+	queueDurability(options.at("channel-durability", "none").get()),
+	sapiExecLimit(options.at("channel-sapi-task-limit", "0").number()),
+	sapiExecTimeout(options.at("channel-sapi-request-limit", "0").number()),
+	sapiExecScript(options.at("channel-sapi", "").dsn())
 {
-	//std::string sapiHandler(options.at("sapi-"));
+	if (sapiExecScript.proto.empty()) {
+		printf("channel(%s) mode(queue)\n",name.c_str());\
+	}
+	else {
+		printf("channel(%s) mode(sapi), sapi(%s), exec(%s)\n", name.c_str(), sapiExecScript.proto.c_str(), sapiExecScript.fullpathname.c_str());
+	}
 }
 
 cchannel_queue::~cchannel_queue() {
@@ -127,7 +136,19 @@ void cchannel_queue::OnPUT(const cmsgid&& msg_id, const std::string&& path, cons
 		if (!queueLimitCapacity || (queueLimitCapacity < msgPool.size())) {
 			if (msgPool.emplace(msg_id, message(crequest::status::accepted | crequest::status::enqueued, std::time(nullptr), std::time(nullptr), request, {})).second) {
 				msgQueue.emplace(msg_id);
-				request->response({}, 201, "Enqueued", { { "X-FIBER-MSG-ID",msg_id.str() },{ "X-FIBER-MSG-QUEUE","ASYNC-QUEUE" } });
+
+				if (!sapiExecScript.proto.empty()) {
+					auto result = fiber::capp::execute(msg_id, sapiExecScript.proto, sapiExecScript.fullpathname, sapiExecLimit, sapiExecTimeout, std::move(request));
+					if (result == 202) {
+						request->response({}, 202, "Enqueued", { { "X-FIBER-MSG-ID",msg_id.str() },{ "X-FIBER-MSG-QUEUE","ASYNC-QUEUE" } });
+					}
+					else {
+						request->response({}, result, "", { { "X-FIBER-MSG-ID",msg_id.str() },{ "X-FIBER-MSG-QUEUE","ASYNC-QUEUE" } });
+					}
+				}
+				else {
+					request->response({}, 202, "Enqueued", { { "X-FIBER-MSG-ID",msg_id.str() },{ "X-FIBER-MSG-QUEUE","ASYNC-QUEUE" } });
+				}
 			}
 		}
 		else {

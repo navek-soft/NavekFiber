@@ -12,7 +12,7 @@
 
 using namespace core;
 
-void cserver::emplace_tcp(std::shared_ptr<cserver::base>&& srv) noexcept(false) {
+void cserver::emplace_tcp(const std::shared_ptr<cserver::base>& srv) noexcept(false) {
 	auto&& server = srv.get()->get<tcp>();
 	if (int sock = socket(AF_INET, (int)server.soType | SOCK_NONBLOCK, (int)server.soProtocol); sock > 0) {
 		try {
@@ -112,7 +112,7 @@ void cserver::emplace_tcp(std::shared_ptr<cserver::base>&& srv) noexcept(false) 
 	}
 }
 
-void cserver::emplace_udp(std::shared_ptr<cserver::base>&& srv) noexcept(false) {
+void cserver::emplace_udp(const std::shared_ptr<cserver::base>& srv) noexcept(false) {
 	auto&& server = srv.get()->get<udp>();
 
 	if (int sock = socket(AF_INET, (int)server.soType | SOCK_NONBLOCK, (int)server.soProtocol); sock > 0) {
@@ -155,7 +155,7 @@ void cserver::emplace_udp(std::shared_ptr<cserver::base>&& srv) noexcept(false) 
 
 }
 
-void cserver::emplace_pipe(std::shared_ptr<cserver::base>&& srv) noexcept(false) {
+void cserver::emplace_pipe(const std::shared_ptr<cserver::base>& srv) noexcept(false) {
 	auto&& server = srv.get()->get<pipe>();
 	
 	if (int sock = socket(AF_UNIX, (int)server.soType,0); sock > 0) {

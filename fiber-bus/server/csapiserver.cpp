@@ -88,7 +88,11 @@ void csapiserver::whirligig() {
 	std::unique_lock<std::mutex> lock(syncPool);
 
 	for (auto&& pool : workerPool) {
-		if (pool.second.workers.empty() || pool.second.tasks.empty()) {
+		if (pool.second.tasks.empty()) {
+			continue;
+		}
+		if (pool.second.workers.empty()) {
+			printf("sapi (%s) all workers are busy\n", pool.first.c_str());
 			continue; // no worker found or no tasks, skip pool
 		}
 		cmsgid first_id(pool.second.tasks.front());
@@ -163,11 +167,11 @@ repeat_with_next_socket:
 				printf("sapi (%s) zombie message %s\n", pool.first.c_str(), msg_id.str().c_str());
 			}
 
-		} while (first_id != pool.second.tasks.front());
+		} while (!pool.second.tasks.empty() && (first_id != pool.second.tasks.front()));
 	}
 }
 
-ssize_t csapiserver::execute(const std::string& sapi, const std::string& execscript, std::size_t task_limit, std::size_t task_timeout, cmsgid& msg_id, const std::shared_ptr<crequest>& request) {
+ssize_t csapiserver::execute(const std::string& sapi, const std::string& execscript, std::size_t task_limit, std::size_t task_timeout, const cmsgid& msg_id, const std::shared_ptr<crequest>& request) {
 	
 	if (auto&& pool = workerPool.find(sapi); pool != workerPool.end()) {
 		{
@@ -183,6 +187,8 @@ ssize_t csapiserver::execute(const std::string& sapi, const std::string& execscr
 			/* emplace task in queue */
 			std::unique_lock<std::mutex> lock(syncPool);
 			pool->second.tasks.emplace(msg_id);
+
+			execNotify.notify_one();
 		}
 		printf("sapi (execute) emplace %s << %s\n", sapi.c_str(), msg_id.str().c_str());
 		return 202;
@@ -191,38 +197,81 @@ ssize_t csapiserver::execute(const std::string& sapi, const std::string& execscr
 	return 415;
 }
 
+bool csapiserver::OnCONNECT(int soc,const std::shared_ptr<crequest>& msg) const {
+
+	auto&& sapi = msg->request_headers().at({ "x-fiber-sapi",12 }).trim().str();
+
+	if (sapiList.find(sapi) != sapiList.end()) {
+		if (msg->response("SHELLO", "/", 202, crequest::connect, {}) == 200) {
+			std::size_t num_workers = 0;
+			{
+				std::unique_lock<std::mutex> lock(syncPool);
+				/* may be ondisconnect not call, for socket number? it is bad :(. if you want, handle this situation now */
+				auto&& it = workerPool.emplace(sapi, sapi_pool());
+				it.first->second.workers.emplace(soc);
+				num_workers = it.first->second.workers.size();
+			}
+			printf("sapi (%s): connect, worker-count: %ld\n", sapi.c_str(), num_workers);
+			return true;
+		}
+		else {
+			printf("sapi (connect) bad channel `%s`\n", sapi.c_str());
+		}
+	}
+	else {
+		printf("sapi (connect) sapi `%s` not declarted\n", sapi.c_str());
+	}
+	return false;
+}
+
+void csapiserver::OnPATCH(int soc, const std::shared_ptr<crequest>& msg) const {
+
+	auto headers = msg->request_headers();
+
+	auto&& sapi = headers.at({ "x-fiber-sapi",12 }).trim().str();
+	auto&& msg_id = headers.at({ "x-fiber-msg-id",14 }).trim().str();
+
+	switch (((csapi::request*)msg.get())->http_code()) {
+	case 102: // FPM is accept message and executing now
+		printf("sapi(%s) #%ld is busy execute (%s)\n", sapi.c_str(), soc, headers.at({ "x-fiber-msg-id",14 }).trim().str().c_str());
+		break;
+	case 100: // FPM return back to pool after execute message
+		if (sapiList.find(sapi) != sapiList.end()) {
+			std::size_t num_workers = 0;
+			{
+				std::unique_lock<std::mutex> lock(syncPool);
+				/* may be ondisconnect not call, for socket number? it is bad :(. if you want, handle this situation now */
+				auto&& it = workerPool.emplace(sapi, sapi_pool());
+				it.first->second.workers.emplace(soc);
+				num_workers = it.first->second.workers.size();
+			}
+			printf("sapi (%s): #%ld came back (%s), worker-count: %ld\n", sapi.c_str(),soc, msg_id.c_str(), num_workers);
+			execNotify.notify_one();
+		}
+		else {
+			printf("sapi (connect) sapi `%s` not declarted\n", sapi.c_str());
+			::close(soc);
+		}
+		break;
+	}
+}
+
 void csapiserver::ondata(int soc) const {
 
 	std::shared_ptr<crequest> msg(new csapi::request(soc));
 
 	switch (msg->request_type())
 	{
-	case crequest::connect:
-	{
-		auto&& sapi = msg->request_headers().at({ "x-fiber-sapi",12 }).str();
-
-		if (sapiList.find(sapi) != sapiList.end()) {
-			if (msg->response("SHELLO", "/", 200, crequest::connect, {}) == 200) {
-				std::size_t num_workers = 0;
-				{
-					std::unique_lock<std::mutex> lock(syncPool);
-					/* may be ondisconnect not call, for socket number? it is bad :(. if you want, handle this situation now */
-					auto&& it = workerPool.emplace(sapi, sapi_pool());
-					it.first->second.workers.emplace(soc);
-					num_workers = it.first->second.workers.size();
-				}
-				msg->disconnect(); /* for unix socket is dummy */
-				printf("sapi (connect): %s, worker-count: %ld\n", sapi.c_str(), num_workers);
-				return;
-			}
-			else {
-				printf("sapi (connect) bad channel `%s`\n", sapi.c_str());
-			}
-		}
-		else {
-			printf("sapi (connect) sapi `%s` not declarted\n", sapi.c_str());
-		}
-	}
+	case crequest::connect: 
+		if (OnCONNECT(soc, msg)) { break; }
+	case crequest::patch:
+		/* Response from SAPI FPM */
+		/*
+		httpcode: 202 accepted
+		else: i dont known :) 
+		*/
+		OnPATCH(soc, msg);
+		break;
 	default:
 		msg->response("SBYE", "/", 400, crequest::connect, {});
 		::close(soc);

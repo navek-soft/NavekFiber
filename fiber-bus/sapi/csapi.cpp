@@ -63,8 +63,9 @@ int csapi::run() {
 						}
 						if (polllist[0].revents == POLLIN) {
 							ondata(sapiSocket);
+							polllist[0].revents = 0;
+							continue;
 						}
-						polllist[0].revents = 0;
 						isContinue = false;
 						break;
 					}
@@ -99,8 +100,8 @@ int csapi::run() {
 	return 0;
 }
 
-ssize_t csapi::response::reply(int sock, const crequest::payload& payload, size_t payload_length, const std::string& uri, size_t msg_code, crequest::type msg_type, const crequest::response_headers& headers_list) {
-	size_t headers_length = uri.length() + 1;
+ssize_t csapi::response::reply(int sock, const crequest::payload& payload, std::size_t payload_length, const std::string& uri, std::size_t msg_code, crequest::type msg_type, const crequest::response_headers& headers_list) {
+	std::size_t headers_length = uri.length() + 1;
 
 	for (auto&& p : headers_list) {
 		headers_length += p.first.length() + 2 + p.second.length() + 1 /* always zero endian data string */;
@@ -130,7 +131,7 @@ ssize_t csapi::response::reply(int sock, const crequest::payload& payload, size_
 		*(buffer - 1) = '\0';
 	}
 
-	for (auto&& p : msgPayload) {
+	for (auto&& p : payload) {
 		memcpy(buffer, p.data(), p.length());
 		buffer += p.length();
 	}
@@ -143,9 +144,9 @@ ssize_t csapi::response::reply(int sock, const crequest::payload& payload, size_
 }
 
 
-ssize_t csapi::response::reply(int sock, const std::string& uri, size_t msg_code, crequest::type msg_type, const crequest::response_headers& headers_list) {
-	size_t payload_length = 0;
-	size_t headers_length = uri.length() + 1;
+ssize_t csapi::response::reply(int sock, const std::string& uri, std::size_t msg_code, crequest::type msg_type, const crequest::response_headers& headers_list) {
+	std::size_t payload_length = 0;
+	std::size_t headers_length = uri.length() + 1;
 
 	for (auto&& p : headers_list) {
 		headers_length += p.first.length() + 2 + p.second.length() + 1 /* always zero endian data string */;
@@ -207,7 +208,7 @@ csapi::request::request(int sock) : msgSocket(sock) {
 			msgPayload.emplace_back(ci::cstringview(((uint8_t*)msg) + msg->poffset, ((uint8_t*)msg) + msg->tlen));
 
 			/* parse headers */
-			for (size_t n = 1; n < msg->argc; n++) {
+			for (std::size_t n = 1; n < msg->argc; n++) {
 				ci::cstringview line(ptr, ptr + std::strlen((char*)ptr));
 				auto&& pair = line.explode(':', 1);
 				msgHeaders.emplace(ci::cstringview(pair.front().begin(), pair.front().end() - 1), pair.back());
@@ -250,9 +251,9 @@ ssize_t csapi::request::request_paload_length() {
 	return 0;
 }
 
-ssize_t csapi::request::response(const payload& data, const std::string& uri, size_t msg_code, crequest::type msg_type, const crequest::response_headers& headers_list) {
-	size_t payload_length = 0;
-	size_t headers_length = uri.length() + 1;
+ssize_t csapi::request::response(const payload& data, const std::string& uri, std::size_t msg_code, crequest::type msg_type, const crequest::response_headers& headers_list) {
+	std::size_t payload_length = 0;
+	std::size_t headers_length = uri.length() + 1;
 
 	for (auto&& p : headers_list) {
 		headers_length += p.first.length() + sizeof(": ") + p.second.length() + 1 /* always zero endian data string */;
@@ -278,7 +279,8 @@ ssize_t csapi::request::response(const payload& data, const std::string& uri, si
 	}
 	for (auto&& p : headers_list) {
 		memcpy(buffer, p.first.data(), p.first.length());
-		memcpy(buffer, ": ", sizeof(": "));
+		buffer += p.first.length() + 2;
+		memcpy(buffer - 2, ": ", 2);
 		memcpy(buffer, p.second.data(), p.second.length());
 		buffer += p.second.length() + 1;
 		*(buffer - 1) = '\0';
@@ -296,9 +298,9 @@ ssize_t csapi::request::response(const payload& data, const std::string& uri, si
 	return 523;
 }
 
-ssize_t csapi::request::response(const ci::cstringformat& data, const std::string& uri, size_t msg_code, crequest::type msg_type, const response_headers& headers_list) {
-	size_t payload_length = 0;
-	size_t headers_length = uri.length() + 1;
+ssize_t csapi::request::response(const ci::cstringformat& data, const std::string& uri, std::size_t msg_code, crequest::type msg_type, const response_headers& headers_list) {
+	std::size_t payload_length = 0;
+	std::size_t headers_length = uri.length() + 1;
 
 	for (auto&& p : headers_list) {
 		headers_length += p.first.length() + sizeof(": ") + p.second.length() + 1 /* always zero endian data string */;
@@ -325,7 +327,8 @@ ssize_t csapi::request::response(const ci::cstringformat& data, const std::strin
 	}
 	for (auto&& p : headers_list) {
 		memcpy(buffer, p.first.data(), p.first.length());
-		memcpy(buffer, ": ", sizeof(": "));
+		buffer += p.first.length() + 2;
+		memcpy(buffer - 2, ": ", 2);
 		memcpy(buffer, p.second.data(), p.second.length());
 		buffer += p.second.length() + 1;
 		*(buffer - 1) = '\0';

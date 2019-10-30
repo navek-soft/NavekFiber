@@ -26,6 +26,8 @@ ssize_t cepoll::wait(cepoll::events& list, ssize_t timeout) {
 	if (auto nevents = epoll_wait(fdPoll, (struct epoll_event*)list.data(), (int)list.size(), (int)timeout); nevents >= 0) {
 		return nevents;
 	}
+	if (errno == EINTR || errno == EAGAIN) { return 0; }
+	printf("epoll_wait(%d) %s\n", errno, strerror(errno));
 	return -errno;
 }
 

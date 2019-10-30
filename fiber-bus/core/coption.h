@@ -22,12 +22,12 @@ namespace core {
 		/*
 		* Convert time string aka [<H>h [<M>m ]] <S>[s] to seconds
 		*/
-		size_t seconds() const;
+		std::size_t seconds() const;
 
 		/*
 		* Convert value to integer value
 		*/
-		ssize_t number(size_t base = 10) const;
+		ssize_t number(std::size_t base = 10) const;
 
 		/*
 		* Convert value to float value
@@ -37,7 +37,7 @@ namespace core {
 		/*
 		* Convert string to number of byte (<N>[G|M|K|B])
 		*/
-		size_t bytes() const;
+		std::size_t bytes() const;
 
 		/*
 		* Expand string to incremented sequense.
@@ -56,7 +56,7 @@ namespace core {
 		*/
 
 		using dsn_params = struct {
-			std::string dsn,proto,user,pwd,host,port,path,filename;
+			std::string dsn,proto,user,pwd,host,port,path,filename,fullpathname;
 			std::unordered_map<std::string, std::string> options;
 		};
 			//std::tuple<std::string, std::string, std::string, std::string, std::string, std::string, std::string, std::unordered_map<std::string, std::string>>;

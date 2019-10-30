@@ -4,11 +4,11 @@ using namespace fiber;
 
 int cfpm::run(const std::unique_ptr<csapi>& sapi, const core::coptions& options) {
 
-	size_t numWorkers = options.at("fpm-num-workers","10").number();
-	size_t enableResurrect = options.at("fpm-enable-resurrect", "0").number();
+	std::size_t numWorkers = options.at("fpm-num-workers","10").number();
+	std::size_t enableResurrect = options.at("fpm-enable-resurrect", "0").number();
 
 	printf("fpm-python: %d workers, resurrect (%s)\n", numWorkers, enableResurrect ? "on" : "off");
-	size_t nWorker = 0;
+	std::size_t nWorker = 0;
 	do {
 
 		for (; nWorker < numWorkers; nWorker++) {

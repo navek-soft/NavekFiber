@@ -12,6 +12,8 @@ int main(int argc, char* argv[])
 		emplace("fpm-pipe", "/tmp/navekfiber-fpm");
 
 	try {
+		//auto sapi = std::unique_ptr<fiber::csapi>(new fiber::csapi_python(options));
+		//sapi->run();
 		fiber::cfpm::run(std::unique_ptr<fiber::csapi>(new fiber::csapi_python(options)), options);
 	}
 	catch (core::system_error & er) {

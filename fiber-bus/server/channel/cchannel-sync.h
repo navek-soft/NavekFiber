@@ -20,9 +20,9 @@ namespace fiber {
 
 		virtual void processing(const cmsgid& msg_id, const std::string& uri, const std::shared_ptr<fiber::crequest>& msg);
 	private:
-		size_t					queueLimitCapacity{ 0 };
-		size_t					queueLimitSapiSameTime{ 0 };
-		size_t					queueLimitSapiPeriodTime{ 0 };
+		std::size_t					queueLimitCapacity{ 0 };
+		std::size_t					queueLimitSapiSameTime{ 0 };
+		std::size_t					queueLimitSapiPeriodTime{ 0 };
 		std::queue<std::pair<cmsgid, message>>		msgQueue;
 		std::shared_mutex		msgSync;
 		std::unique_ptr<csapi>	queueSapi;

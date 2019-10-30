@@ -16,7 +16,7 @@ namespace fiber {
 		class path_hash {
 			std::hash<std::string> hasher;
 		public:
-			inline size_t operator()(const std::string& key) const {
+			inline std::size_t operator()(const std::string& key) const {
 				auto pos = key.find_first_of("/");
 				return hasher({ key.begin(),key.begin() + pos });
 			}

@@ -19,19 +19,19 @@ namespace fiber {
 			mutable std::list<std::unique_ptr<cmemory::frame>> reqBuffer;
 			crequest::payload reqPayload;
 			
-			size_t				offset_payload{ 0 };
+			std::size_t				offset_payload{ 0 };
 			ci::cstringview		uri;
 			crequest::headers	headers;
 			
 			inline crequest::type check_type_parse();
 			inline bool request_parse(ci::cstringview& val, const ci::cstringview& request);
-			inline bool headers_parse(crequest::headers& val, size_t& payload_offset, const ci::cstringview& request);
-			size_t response(const uint8_t* response_data, ssize_t response_length);
+			inline bool headers_parse(crequest::headers& val, std::size_t& payload_offset, const ci::cstringview& request);
+			std::size_t response(const uint8_t* response_data, ssize_t response_length);
 		protected:
 			friend class chttpserver;
 			inline ssize_t get_chunk(ssize_t max_request_size);
 			inline void reset();
-			inline bool is_timeout_ellapsed(uint64_t now) { return reqReceiveTimeOut && (now > (size_t)reqReceiveTime); }
+			inline bool is_timeout_ellapsed(uint64_t now) { return reqReceiveTimeOut && (now > (std::size_t)reqReceiveTime); }
 			inline void update_time() { reqReceiveTime += reqReceiveTimeOut; }
 		public:
 			request(int sock,uint64_t rcv_timeout,uint64_t time) : reqTime(time), reqReceiveTime(time + rcv_timeout), reqReceiveTimeOut(rcv_timeout), reqSocket(sock) { ; }
@@ -44,10 +44,10 @@ namespace fiber {
 			virtual const crequest::headers& request_headers() { return headers; }
 			virtual const crequest::payload& request_paload();
 			virtual ssize_t request_paload_length() { return reqPaloadLength; }
-			virtual ssize_t response(const payload& data, size_t data_length, size_t msg_code, const std::string& msg_text = {}, const response_headers& headers_list = {});
-			virtual ssize_t response(const ci::cstringformat& data, size_t msg_code, const std::string& msg_text = {}, const std::unordered_map<std::string, std::string>& headers_list = {});
-			virtual ssize_t response(const payload& data, const std::string& uri, size_t msg_code, crequest::type msg_type, const crequest::response_headers& headers_list = {}) { return -1; }
-			virtual ssize_t response(const ci::cstringformat& data, const std::string& uri, size_t msg_code, crequest::type msg_type, const response_headers& headers_list = {}) { return -1; }
+			virtual ssize_t response(const payload& data, std::size_t data_length, std::size_t msg_code, const std::string& msg_text = {}, const response_headers& headers_list = {});
+			virtual ssize_t response(const ci::cstringformat& data, std::size_t msg_code, const std::string& msg_text = {}, const std::unordered_map<std::string, std::string>& headers_list = {});
+			virtual ssize_t response(const payload& data, const std::string& uri, std::size_t msg_code, crequest::type msg_type, const crequest::response_headers& headers_list = {}) { return -1; }
+			virtual ssize_t response(const ci::cstringformat& data, const std::string& uri, std::size_t msg_code, crequest::type msg_type, const response_headers& headers_list = {}) { return -1; }
 			virtual void disconnect();
 		};
 		time_t optReceiveTimeout{ 0 };

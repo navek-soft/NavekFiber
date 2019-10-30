@@ -17,7 +17,7 @@ namespace fiber {
 	private:
 		
 		struct delay_exec_state {
-			size_t	task_executing{ 0 }, task_limit{ 0 }, task_timeout{0};
+			std::size_t	task_executing{ 0 }, task_limit{ 0 }, task_timeout{0};
 			time_t task_timestamp{ 0 };
 
 			delay_exec_state() = default;
@@ -35,14 +35,14 @@ namespace fiber {
 		};
 
 		struct exec_task {
-			size_t task_limit{ 0 }, task_timeout{ 0 };
+			std::size_t task_limit{ 0 }, task_timeout{ 0 };
 			std::string sapi, execscript;
 			std::shared_ptr<crequest> request;
 
 			exec_task() = default;
 			~exec_task() = default;
 
-			exec_task(const std::string& sapiname, const std::string& script, size_t tasklimit, size_t tasktimeout, const std::shared_ptr<crequest>& _request) :
+			exec_task(const std::string& sapiname, const std::string& script, std::size_t tasklimit, std::size_t tasktimeout, const std::shared_ptr<crequest>& _request) :
 				task_limit(tasklimit), task_timeout(tasktimeout), sapi(sapiname), execscript(script), request(_request) {
 				;
 			}
@@ -58,11 +58,14 @@ namespace fiber {
 		mutable std::unordered_map<cmsgid, exec_task> taskPool;
 		std::unordered_set<std::string> sapiList;
 
-		std::condition_variable  execNotify;
+		mutable std::condition_variable  execNotify;
 		std::thread				 execManager;
-		std::atomic_bool		 execDoIt{true};
+		mutable std::atomic_bool		 execDoIt{true};
 
 		void whirligig();
+
+		bool OnCONNECT(int soc,const std::shared_ptr<crequest>& msg) const;
+		void OnPATCH(int soc, const std::shared_ptr<crequest>& msg) const;
 	public:
 		static inline const std::string server_banner{ "csapiserver" };
 		virtual const std::string& getname() const { return server_banner; }
@@ -70,7 +73,7 @@ namespace fiber {
 		csapiserver(const core::coptions& options);
 		virtual ~csapiserver();
 	public:
-		ssize_t execute(const std::string& sapi, const std::string& execscript,std::size_t task_limit, std::size_t task_timeout, cmsgid& msg_id, const std::shared_ptr<crequest>& request);
+		ssize_t execute(const std::string& sapi, const std::string& execscript,std::size_t task_limit, std::size_t task_timeout, const cmsgid& msg_id, const std::shared_ptr<crequest>& request);
 		virtual void onshutdown() const;
 		virtual void onclose(int soc) const;
 		virtual void onconnect(int soc, const sockaddr_storage&, uint64_t) const;

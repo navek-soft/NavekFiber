@@ -40,7 +40,7 @@ namespace fiber {
 		inline bool operator == (const cmsgid& m) const { return std::memcmp(id_uid,m.id_uid,sizeof(id_uid)) == 0; }
 		inline bool operator != (const cmsgid& m) const { return std::memcmp(id_uid, m.id_uid, sizeof(id_uid)) != 0; }
 		inline cmsgid& operator = (const cmsgid& m) { id_sequence = m.id_sequence; no_sequence = m.no_sequence; std::memcpy(id_uid, m.id_uid, sizeof(id_uid)); return *this; }
-		inline size_t hash() const { uint64_t* i64_id = (uint64_t*)id_uid;	return 0x5bd1e9955bd1e995ull ^ i64_id[0] ^ i64_id[1];}
+		inline std::size_t hash() const { uint64_t* i64_id = (uint64_t*)id_uid;	return 0x5bd1e9955bd1e995ull ^ i64_id[0] ^ i64_id[1];}
 		static inline cmsgid gen() { 
 			char buffer[17];
 			std::snprintf(buffer,sizeof(buffer),"%08X%08X", 0x5bd1e995ull ^ ((uint32_t)time(nullptr)), ++id_gcounter);
@@ -48,13 +48,16 @@ namespace fiber {
 		}
 		inline std::string str() const {
 			char buffer[sizeof(id_uid) + 1 + 8 + 1 + 2 + 1];
-			std::snprintf(buffer, sizeof(buffer), "%*s.%lu.%lu",sizeof(id_uid), (char*)id_uid, id_sequence, no_sequence);
+			std::snprintf(buffer, sizeof(buffer), "%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c.%lu.%lu",
+				id_uid[0], id_uid[1], id_uid[2], id_uid[3], id_uid[4], id_uid[5], id_uid[6], id_uid[7],
+				id_uid[8], id_uid[9], id_uid[10], id_uid[11], id_uid[12], id_uid[13], id_uid[14], id_uid[15],
+				id_sequence, no_sequence);
 			return buffer;
 		}
 	};
 
 	class crequest {
-		static const std::unordered_map<size_t, const char*> codeResponse;
+		static const std::unordered_map<std::size_t, const char*> codeResponse;
 	public:
 		enum type { invalid, unsupported, get, post, put, head, options, del, trace, connect, patch };
 		enum status : uint16_t { 
@@ -70,13 +73,13 @@ namespace fiber {
 			complete	= 0x0200,		// sapi say, message processed
 
 		};
-		using code = std::pair<size_t, const char*>;
+		using code = std::pair<std::size_t, const char*>;
 		using headers = std::unordered_map<ci::cstringview, ci::cstringview>;
 		using payload = std::deque<ci::cstringview>;
 		using response_headers = std::unordered_map<std::string, std::string>;
 
-		inline code message(size_t msg_code) {  auto&& msg = codeResponse.find(msg_code); return msg != codeResponse.end() ? code(msg_code, msg->second) : code(msg_code,"unknown response code"); }
-		inline code message(size_t msg_code,const char* msg) { return code(msg_code, msg); }
+		inline code message(std::size_t msg_code) {  auto&& msg = codeResponse.find(msg_code); return msg != codeResponse.end() ? code(msg_code, msg->second) : code(msg_code,"unknown response code"); }
+		inline code message(std::size_t msg_code,const char* msg) { return code(msg_code, msg); }
 
 		virtual ~crequest() { ; }
 		virtual type request_type() = 0;
@@ -85,10 +88,10 @@ namespace fiber {
 		virtual const payload& request_paload() = 0;
 		virtual ssize_t request_paload_length() = 0;
 
-		virtual ssize_t response(const payload& data, size_t data_length, size_t msg_code, const std::string& msg_text = {}, const response_headers& headers_list = {}) = 0;
-		virtual ssize_t response(const ci::cstringformat& data, size_t msg_code, const std::string& msg_text = {}, const response_headers& headers_list = {}) = 0;
-		virtual ssize_t response(const payload& data, const std::string& uri, size_t msg_code, crequest::type msg_type, const crequest::response_headers& headers_list = {}) = 0;
-		virtual ssize_t response(const ci::cstringformat& data, const std::string& uri, size_t msg_code, crequest::type msg_type, const response_headers& headers_list = {}) = 0;
+		virtual ssize_t response(const payload& data, std::size_t data_length, std::size_t msg_code, const std::string& msg_text = {}, const response_headers& headers_list = {}) = 0;
+		virtual ssize_t response(const ci::cstringformat& data, std::size_t msg_code, const std::string& msg_text = {}, const response_headers& headers_list = {}) = 0;
+		virtual ssize_t response(const payload& data, const std::string& uri, std::size_t msg_code, crequest::type msg_type, const crequest::response_headers& headers_list = {}) = 0;
+		virtual ssize_t response(const ci::cstringformat& data, const std::string& uri, std::size_t msg_code, crequest::type msg_type, const response_headers& headers_list = {}) = 0;
 
 		virtual void disconnect() = 0;
 	};

@@ -1,9 +1,21 @@
 #pragma once
 #include "../core/coption.h"
 #include "../sapi/csapi.h"
+#include <ctime>
 
 namespace fiber {
 	class csapi_python : public csapi {
+	private:
+		static inline constexpr const char* banner{"python"};
+
+		void OnCONNECT(csapi::request& msg);
+		void OnPUT(csapi::request& msg);
+
+		crequest::response_headers make_headers(std::time_t ctime, std::time_t mtime, const crequest::headers& reqeaders = {}, const crequest::response_headers& additional = {});
+
+	private:
+		std::string	sapiPipe;
+
 	public:
 		csapi_python(const core::coptions& options);
 		virtual ~csapi_python();
