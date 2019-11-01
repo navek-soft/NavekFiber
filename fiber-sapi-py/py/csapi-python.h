@@ -16,6 +16,7 @@ namespace fiber {
 	private:
 		std::string	sapiPipe;
 
+		ssize_t execute(ci::cstringformat& result,const std::string& msgid, const std::string& method, const std::string& url, const std::string& script, const crequest::payload&);
 	public:
 		csapi_python(const core::coptions& options);
 		virtual ~csapi_python();

@@ -79,16 +79,23 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
   <ItemGroup>
+    <ClCompile Include="core\ccmdline.cpp" />
     <ClCompile Include="core\cpoll.cpp" />
     <ClCompile Include="core\cserver.cpp" />
     <ClCompile Include="core\cthreadpool.cpp" />
     <ClCompile Include="core\coption.cpp" />
-    <ClCompile Include="sapi\cfpm.cpp" />
-    <ClCompile Include="sapi\csapi.cpp" />
+    <ClCompile Include="core\cini.cpp" />
+    <ClCompile Include="sapi\cfpm.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="sapi\csapi.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="server\capp.cpp" />
     <ClCompile Include="server\cbroker.cpp" />
     <ClCompile Include="server\channel\cchannel-sync.cpp" />
     <ClCompile Include="server\channel\cchannel.cpp" />
+    <ClCompile Include="server\config\configure.cpp" />
     <ClCompile Include="server\crequest.cpp" />
     <ClCompile Include="server\chttpserver.cpp" />
     <ClCompile Include="fiber-bus.cpp" />
@@ -96,7 +103,9 @@
     <ClCompile Include="server\csapiserver.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="core\ccmdline.h" />
     <ClInclude Include="core\csignal.h" />
+    <ClInclude Include="core\cini.h" />
     <ClInclude Include="sapi\cfpm.h" />
     <ClInclude Include="server\capp.h" />
     <ClInclude Include="server\channel\cchannel-queue.h" />
@@ -115,6 +124,7 @@
     <ClInclude Include="server\chttpserver.h" />
     <ClInclude Include="server\csapiserver.h" />
     <ClInclude Include="server\curi.h" />
+    <ClInclude Include="server\clog.h" />
     <ClInclude Include="server\pch.h" />
     <ClInclude Include="server\channel\cchannel.h" />
     <ClInclude Include="sapi\csapi.h" />

@@ -32,7 +32,7 @@ namespace fiber {
 		cbroker(const core::coptions& options);
 		~cbroker();
 		bool emplace(const std::string& endpoint, std::shared_ptr<cchannel>&& queue);
-		bool enqueue(std::shared_ptr<fiber::crequest>&& msg);
+		bool enqueue(const std::shared_ptr<fiber::crequest>& msg);
 
 		bool serialize() { return true; }
 		bool unserialize() { return true; }

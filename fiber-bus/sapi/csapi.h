@@ -59,7 +59,7 @@ namespace fiber {
 			std::deque<std::string> msgPayload;
 		public:
 			response() { ; }
-			virtual ~response() { ; }
+			virtual ~response() { printf("%s\n", __PRETTY_FUNCTION__); }
 			inline void emplace(const ci::cstringformat& data) { msgPayload.emplace_back(data.str()); }
 			inline void emplace(const std::string& data) { msgPayload.emplace_back(data); }
 			ssize_t reply(int sock, const std::string& uri, std::size_t msg_code, crequest::type msg_type, const crequest::response_headers& headers_list = {});

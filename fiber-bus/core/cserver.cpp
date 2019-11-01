@@ -73,18 +73,13 @@ void cserver::emplace_tcp(const std::shared_ptr<cserver::base>& srv) noexcept(fa
 			}
 
 			if (server.optReceiveTimeout > 0) {
-				int timer_fd = timerfd_create(CLOCK_MONOTONIC, 0);
+				int timer_fd = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC);
 				if ( timer_fd == -1) {
 					throw core::system_error(errno, "TCP-SERVER(timerfd_create)", __PRETTY_FUNCTION__, __LINE__);
 				}
 				{
 					struct itimerspec ts;
-					/*
-					ts.it_value.tv_sec = (server.optReceiveTimeout + 500) / 1000;
-					ts.it_value.tv_nsec = (server.optReceiveTimeout % 1000) * 1000000;
-					ts.it_interval.tv_sec = 0;
-					ts.it_interval.tv_nsec = 0;
-					*/
+					
 					ts.it_interval.tv_sec = (server.optReceiveTimeout + 500) / 1000;
 					ts.it_interval.tv_nsec = (server.optReceiveTimeout % 1000) * 1000000;
 					ts.it_value.tv_sec = 0;
@@ -177,6 +172,27 @@ void cserver::emplace_pipe(const std::shared_ptr<cserver::base>& srv) noexcept(f
 
 			if (!socketPool.emplace(sock, std::pair<uint8_t, std::shared_ptr<cserver::base>>(1, srv)).second || eventPoll.emplace(sock, cepoll::in | cepoll::hup | cepoll::offline | cepoll::err) < 0) {
 				throw core::system_error(errno);
+			}
+			{
+				// run timer for pipe server (for queue processing)
+				int timer_fd = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC);
+				if (timer_fd == -1) {
+					throw core::system_error(errno, "PIPE-SERVER(timerfd_create)", __PRETTY_FUNCTION__, __LINE__);
+				}
+				{
+					struct itimerspec ts;
+					ts.it_interval.tv_sec = 1;
+					ts.it_interval.tv_nsec = 0;
+					ts.it_value.tv_sec = 0;
+					ts.it_value.tv_nsec = 0;
+					if (timerfd_settime(timer_fd, TFD_TIMER_ABSTIME, &ts, NULL) < 0) {
+						close(timer_fd);
+						throw core::system_error(errno);
+					}
+					if (!socketPool.emplace(timer_fd, std::pair<uint8_t, std::shared_ptr<cserver::base>>(3, srv)).second || eventPoll.emplace(timer_fd, cepoll::in | cepoll::edge) < 0) {
+						throw core::system_error(errno);
+					}
+				}
 			}
 		}
 		catch (core::system_error & er) {
@@ -308,7 +324,7 @@ inline void cserver::accept_tcpclient(uint32_t events, int sock, hserver&& serve
 	}
 }
 
-inline void cserver::accept_tcptimer(uint32_t events, int sock, hserver&& server) noexcept(false) {
+inline void cserver::accept_timer(uint32_t events, int sock, hserver&& server) noexcept(false) {
 	auto&& srv = server->second.second->get<cserver::tcp>();
 	uint64_t time;
 	if (::read(server->first, &time, sizeof(time)) > 0) {
@@ -339,7 +355,7 @@ ssize_t cserver::listen(ssize_t timeout_milisecond) {
 					continue;
 				}
 				else if (so_it->second.first == 3 /* timer */) {
-					accept_tcptimer(eventList[i].events, eventList[i].data.fd, std::move(so_it));
+					accept_timer(eventList[i].events, eventList[i].data.fd, std::move(so_it));
 					continue;
 				}
 			}
@@ -366,13 +382,6 @@ void cserver::shutdown() {
 			else if (so_it.second.first == 1) {
 				srv.onshutdown();
 			}
-			/*
-			for (auto&& cl_it : clientPool[so_it.first]) {
-				eventPoll.remove(cl_it);
-				::close(cl_it);
-				srv.onclose(cl_it);
-			}
-			*/
 		}
 		else if (so_it.second.second->type_id() == tudp) {
 			auto&& srv = so_it.second.second->get<cserver::udp>();

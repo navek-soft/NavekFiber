@@ -32,7 +32,15 @@ namespace core {
 			act.sa_flags |= SA_SIGINFO;
 
 			for (size_t i = 0; i < sigals_count; i++) {
-				printf("add %d (%d)\n",sigaction(signals_list[i], &act, 0), signals_list[i]);
+				sigaction(signals_list[i], &act, 0);
+			}
+		}
+		template<typename ... SIG_LIST>
+		static inline void reset(sighandler_t handler,SIG_LIST...signs) {
+			int		signals_list[]{ signs... };
+			size_t	sigals_count = sizeof...(signs);
+			for (size_t i = 0; i < sigals_count; i++) {
+				std::signal(signals_list[i], handler);
 			}
 		}
 	private:

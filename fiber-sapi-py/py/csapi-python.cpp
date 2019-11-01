@@ -1,15 +1,18 @@
 #include "csapi-python.h"
 #include <thread>
+#include <python3.6m/Python.h>
+#include "../core/cexcept.h"
+#include <regex>
 
 using namespace fiber;
 
 csapi_python::csapi_python(const core::coptions& options)
-	: csapi(options.at("fpm-sapi-pipe", "/tmp/navekfiber-fpm")), sapiPipe(options.at("fpm-sapi-pipe", "/tmp/navekfiber-fpm").get()){
-
+	: csapi(options.at("pipe", "/tmp/navekfiber-fpm")), sapiPipe(options.at("pipe", "/tmp/navekfiber-fpm").get()){
+	Py_Initialize();
 }
 
 csapi_python::~csapi_python() {
-
+	Py_Finalize();
 }
 
 void csapi_python::onshutdown() {
@@ -58,13 +61,72 @@ void csapi_python::OnCONNECT(csapi::request& msg) {
 	}
 }
 void csapi_python::OnPUT(csapi::request& msg) {
-	printf("csapi_python: %s %s(%s)\n", "put", msg.request_uri().trim().str().c_str(), msg.request_paload().front().str().c_str());
 
 	msg.response(ci::cstringformat(),"/", 102, crequest::type::patch, make_headers(std::time(nullptr), std::time(nullptr), msg.request_headers()));
 
-	std::this_thread::sleep_for(std::chrono::seconds(10));
+	//std::this_thread::sleep_for(std::chrono::seconds(10));
+	auto&& headers = msg.request_headers();
+	ci::cstringformat result;
+	auto code = execute(result,
+		headers.at({ "x-fiber-msg-id", 14 }).trim().str(),
+		"PUT",
+		msg.request_uri().trim().str(),
+		headers.at({ "x-fiber-fpm-exec", 16 }).trim().str(),
+		msg.request_paload());
 
-	msg.response(ci::cstringformat(), "/", 100, crequest::type::patch, make_headers(std::time(nullptr), std::time(nullptr), msg.request_headers()));
+	msg.response(result, msg.request_uri().trim().str(), 100, crequest::type::post, make_headers(std::time(nullptr), std::time(nullptr), msg.request_headers()));
+	printf("csapi_python: %s(%s) %ld\n", "put", msg.request_uri().trim().str().c_str(), code);
+}
+
+ssize_t csapi_python::execute(ci::cstringformat& result,const std::string& msgid, const std::string& method, const std::string& url, const std::string& script, const crequest::payload& payload) {
+
+	if (!Py_IsInitialized()) 
+		Py_Initialize();
+
+	if (FILE* fd = fopen(script.c_str(), "r"); fd != NULL) {
+
+		PyRun_SimpleString("import sys\nfrom io import StringIO\nclass StdoutCatcher:\n	def __init__(self):\n		self.data = ''\n	def write(self, stuff):\n		self.data = self.data + stuff\n	def flush(self):\n		self.data=self.data\ncatcher = StdoutCatcher()\noldstdout = sys.stdout\nsys.stdout = catcher");
+
+
+		static const std::regex re("\'");
+		std::string data("oldstdin = sys.stdin\nsys.stdin=StringIO('");
+		for (auto&& s : payload) {
+			data.append(std::regex_replace(s.str(), re, R"(\')"));
+		}
+		data.append("')");
+
+		if (PyRun_SimpleString(data.c_str()))
+		{
+			Py_Finalize();
+			return 404;
+		}
+
+		PyObject* m = PyImport_AddModule("__main__");
+		if (PyRun_SimpleFileEx(fd, script.c_str(),1))
+		{
+			Py_Finalize();
+			return 400;
+		}
+
+		PyObject* catcher = PyObject_GetAttrString(m, "catcher");
+		PyObject* output = PyObject_GetAttrString(catcher, "data");
+		PyObject* decoded = PyUnicode_AsEncodedString(output, "utf-8", "ERROR");
+
+		result.append(PyBytes_AS_STRING(decoded), PyBytes_GET_SIZE(decoded));
+
+		Py_XDECREF(decoded);
+		Py_XDECREF(catcher);
+		Py_XDECREF(output);
+
+		PyRun_SimpleString("sys.stdin = oldstdin\nsys.stdout = oldstdout\n");
+
+		Py_Finalize();
+		return 200;
+	}
+
+	Py_Finalize();
+	return 404;
+
 }
 
 crequest::response_headers csapi_python::make_headers(std::time_t ctime, std::time_t mtime, const crequest::headers& reqeaders, const crequest::response_headers& additional)

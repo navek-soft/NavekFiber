@@ -10,8 +10,8 @@ namespace core {
 		mutable std::string	opt_value;
 	public:
 		coption() { ; }
-		explicit coption(const std::string& def_value) : opt_value(def_value) { ; }
-		explicit coption(const coption& o) : opt_empty(o.opt_empty), opt_value(o.opt_value) { ; }
+		coption(const std::string& def_value) : opt_value(def_value) { ; }
+		coption(const coption& o) : opt_empty(o.opt_empty), opt_value(o.opt_value) { ; }
 
 		inline void set(const std::string& v) const { opt_value = v; opt_empty = false; }
 		inline bool isset() const { return !opt_empty; }
@@ -52,6 +52,14 @@ namespace core {
 		std::deque<std::string> split(const std::string& delimiter, bool trim_values = true) const;
 
 		/*
+		* host port (<ip4,ip6,name>:<port>)
+		*/
+		using hostport = struct {
+			std::string host, port;
+		};
+		hostport host() const;
+
+		/*
 		* Expand dsn string aka <proto>://<user>:<pwd>@<host>:<port></path/to/><filename>?<opt1>=<val1>&<opt2>=<val2>
 		*/
 
@@ -74,6 +82,7 @@ namespace core {
 		coptions(const coptions::list& opts) : options(opts) { ; }
 		explicit coptions(const coptions& c) : options(c.options) { ; }
 		inline coptions& emplace(const std::string& name, const std::string& opt) { options.emplace(name, coption(opt)); return *this; }
+		inline coptions& emplace(const std::string& name, const coption& opt) { options.emplace(name, opt); return *this; }
 
 		inline core::coption at(const std::string& name, const std::string& defalut_value) const {
 			auto&& it = options.find(name);

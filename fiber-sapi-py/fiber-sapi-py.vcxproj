@@ -79,6 +79,8 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
   <ItemGroup>
+    <ClCompile Include="core\ccmdline.cpp" />
+    <ClCompile Include="core\cini.cpp" />
     <ClCompile Include="core\coption.cpp" />
     <ClCompile Include="fiber-sapi-py.cpp" />
     <ClCompile Include="py\csapi-python.cpp" />
@@ -88,12 +90,15 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ci\cstring.h" />
+    <ClInclude Include="core\ccmdline.h" />
     <ClInclude Include="core\cexcept.h" />
+    <ClInclude Include="core\cini.h" />
     <ClInclude Include="core\coption.h" />
     <ClInclude Include="core\csignal.h" />
     <ClInclude Include="py\csapi-python.h" />
     <ClInclude Include="sapi\csapi.h" />
     <ClInclude Include="sapi\cfpm.h" />
+    <ClInclude Include="server\clog.h" />
     <ClInclude Include="server\crequest.h" />
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">

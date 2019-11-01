@@ -6,19 +6,16 @@
 #include <cstdarg>
 #include "capp.h"
 #include <netinet/tcp.h>
+#include "clog.h"
 
 using namespace fiber;
 
 csapiserver::csapiserver(const core::coptions& options)
-	: core::cserver::pipe(options.at("fpm-sapi-pipe","/tmp/navekfiber-fpm").get())
+	: core::cserver::pipe(options.at("sapi-pipe-path","/tmp/navekfiber-fpm").get())
 {
-	printf("sapi-fpm: start at `%s` endpoint\n", options.at("fpm-sapi-pipe", "/tmp/navekfiber-fpm").get().c_str());
-
-	sapiList.emplace("python");
-	sapiList.emplace("php");
-
+	sapiList = options.at("sapi-engines").sequence();
 	execManager = std::thread([](csapiserver* owner,std::condition_variable& notifer, std::mutex& sync,std::atomic_bool& yet) {
-		printf("sapi (manager) start\n");
+		clog::log(0, "( sapi:server ) thread startup\n");
 		do {
 			std::unique_lock<std::mutex> lock(sync);
 			notifer.wait(lock);
@@ -26,12 +23,8 @@ csapiserver::csapiserver(const core::coptions& options)
 				owner->whirligig();
 			}
 		} while (yet);
-		printf("sapi (manager) goin down\n");
-
+		clog::log(0, "( sapi:server ) thread goin down\n");
 	},this,std::ref(execNotify), std::ref(syncQueue), std::ref(execDoIt));
-
-	//optReceiveTimeout = (time_t)(options.at("receive-timeout", "3000").number());
-	//optMaxRequestSize = (ssize_t)options.at("max-request-size", "5048576").bytes();
 }
 
 csapiserver::~csapiserver() {
@@ -43,44 +36,23 @@ csapiserver::~csapiserver() {
 }
 
 void csapiserver::onshutdown() const {
-	printf("csapiserver::onshutdown\n");
+	clog::log(0, "( sapi:server ) shutdown\n");
 }
 
 void csapiserver::onclose(int soc) const {
-	//if (auto&& cli = requestsClient.find(soc); cli != requestsClient.end()) {
-	//	requestsClient.erase(cli);
-	//}
-	printf("csapiserver::onclose\n");
 }
 
 void csapiserver::onconnect(int soc, const sockaddr_storage&, uint64_t time) const {
 
-	printf("csapiserver::onconnect\n");
-
-	//auto&& req = requestsClient.emplace(soc, std::shared_ptr<request>(new request(soc, optReceiveTimeout, time)));
-	//if (!req.second) {
-	//	req.first->second.get()->reset();
-	//	req.first->second->update_time();
-	//}
-	//else {
-	//	int opt = 1;	setsockopt(soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof(opt));
-	//	opt = 30;		setsockopt(soc, IPPROTO_TCP, TCP_KEEPINTVL, &opt, sizeof(opt));
-	//}
-	//printf("onconnect (%ld)\n", soc);
-	//struct timeval tv = { optReceiveTimeout / 1000, optReceiveTimeout % 1000 };
-	//setsockopt(soc, SOL_SOCKET, SO_RCVTIMEO, (struct timeval*) & tv, sizeof(struct timeval));
+	clog::log(0, "( sapi:server ) accept connection #%ld\n", soc);
 }
 
 void csapiserver::ondisconnect(int soc) const {
-	printf("csapiserver::ondisconnect\n");
-	//printf("ondisconnect (%ld)\n", soc);
-	//if (auto&& cli = requestsClient.find(soc); cli != requestsClient.end()) {
-	//	requestsClient.erase(cli);
-	//}
+	clog::log(0, "( sapi:server ) disconnect client #%ld\n", soc);
 }
 
 void csapiserver::onidle(uint64_t time) const {
-	printf("csapiserver::onidle\n");
+	execNotify.notify_one();
 }
 
 void csapiserver::whirligig() {
@@ -92,10 +64,10 @@ void csapiserver::whirligig() {
 			continue;
 		}
 		if (pool.second.workers.empty()) {
-			printf("sapi (%s) all workers are busy\n", pool.first.c_str());
+			clog::log(0, "( sapi:server:%s ) all workers are busy <pool.size=%ld>\n", pool.first.c_str(), pool.second.tasks.size());
 			continue; // no worker found or no tasks, skip pool
 		}
-		cmsgid first_id(pool.second.tasks.front());
+		std::queue<fiber::cmsgid> unprocessed;
 
 		do {
 			/* deque task from front */
@@ -103,29 +75,32 @@ void csapiserver::whirligig() {
 			auto&& msg_id = pool.second.tasks.front();
 			pool.second.tasks.pop();
 
+			std::unordered_map<std::string, delay_exec_state>::iterator itDelayed = taskDelayExec.end();
+
 			if (auto&& task = taskPool.find(msg_id); task != taskPool.end()) {
 
 				/* limited of number or period execution task, check number currently running */
 				if (task->second.task_limit || task->second.task_timeout) {
-					if (auto&& ds_it = taskDelayExec.find(task->second.execscript); ds_it != taskDelayExec.end()) {
+					if (itDelayed = taskDelayExec.find(task->second.execscript); itDelayed != taskDelayExec.end()) {
 						if (task->second.task_limit) {
-							if (ds_it->second.task_executing >= ds_it->second.task_limit) {
+							if (itDelayed->second.task_executing >= task->second.task_limit) {
 								/* can not execute task now, return back to queue */
-								pool.second.tasks.emplace(msg_id);
+								unprocessed.emplace(msg_id);
+								clog::log(0, "( sapi:server:%s ) task limits `%s` (%s) count of executing %ld (%ld)\n", pool.first.c_str(), task->second.execscript.c_str(), msg_id.str().c_str(),
+									itDelayed->second.task_executing, taskPool.size());
 								continue; // next task
 							}
 						}
 						if (task->second.task_timeout) {
-							if (std::time_t(ds_it->second.task_timestamp + task->second.task_timeout) >= std::time(nullptr)) {
+							if (std::time_t(itDelayed->second.task_timestamp + task->second.task_timeout) >= std::time(nullptr)) {
 								/* can not execute task now, return back to queue */
-								pool.second.tasks.emplace(msg_id);
+								unprocessed.emplace(msg_id);
+								clog::log(0, "( sapi:server:%s ) wait timeout `%s` (%s) count of executing (%ld), %ld (%ld) \n", pool.first.c_str(), task->second.execscript.c_str(), msg_id.str().c_str(), itDelayed->second.task_executing,
+									std::time(nullptr) - itDelayed->second.task_timestamp, task->second.task_timeout);
 								continue; // next task
 							}
-
-							ds_it->second.task_timestamp = std::time(nullptr);
 						}
-
-						printf("sapi (%s) execute delayed `%s` (%s) count of executing (%ld) \n", pool.first.c_str(), task->second.execscript.c_str(), msg_id.str().c_str(), ds_it->second.task_executing);
+						clog::log(0, "( sapi:server:%s ) execute delayed `%s` (%s) count of executing %ld (%ld) \n", pool.first.c_str(), task->second.execscript.c_str(), msg_id.str().c_str(), itDelayed->second.task_executing, task->second.task_limit);
 					}
 				}
 
@@ -150,24 +125,31 @@ repeat_with_next_socket:
 
 						goto repeat_with_next_socket;
 					}
-
+					if (itDelayed != taskDelayExec.end()) {
+						itDelayed->second.task_timestamp = std::time(nullptr);
+						itDelayed->second.task_executing++;
+					}
 					/* task success send to execute, remove it from pool */
-					printf("sapi (%s) execute %s(%s)\n", pool.first.c_str(), task->second.execscript.c_str(),msg_id.str().c_str());
+					clog::log(0, "( sapi:server:%s ) execute %s(%s)\n", pool.first.c_str(), task->second.execscript.c_str(),msg_id.str().c_str());
 					taskPool.erase(task);
 				}
 				else {
 					/* enque message back */
-					pool.second.tasks.emplace(msg_id);
-					printf("sapi (%s) all workers are busy\n",pool.first.c_str());
+					unprocessed.emplace(msg_id);
+					clog::log(0, "( sapi:server:%s ) all workers are busy\n",pool.first.c_str());
 
 					break; /* no workers found, go to next pool */
 				}
 			}
 			else {
-				printf("sapi (%s) zombie message %s\n", pool.first.c_str(), msg_id.str().c_str());
+				clog::log(0, "( sapi:server:%s ) zombie message %s\n", pool.first.c_str(), msg_id.str().c_str());
 			}
 
-		} while (!pool.second.tasks.empty() && (first_id != pool.second.tasks.front()));
+		} while (!pool.second.tasks.empty());
+		pool.second.tasks.swap(unprocessed);
+
+		clog::log(0, "( sapi:server:%s ) unprocessed %ld\n", pool.first.c_str(), pool.second.tasks.size());
+
 	}
 }
 
@@ -190,10 +172,10 @@ ssize_t csapiserver::execute(const std::string& sapi, const std::string& execscr
 
 			execNotify.notify_one();
 		}
-		printf("sapi (execute) emplace %s << %s\n", sapi.c_str(), msg_id.str().c_str());
+		clog::log(0, "( sapi:server:%s ) %s (limit: %ld, timeout: %ld)\n", sapi.c_str(), msg_id.str().c_str(), task_limit, task_timeout);
 		return 202;
 	}
-	printf("sapi (execute) bad sapi `%s`\n", sapi.c_str());
+	printf("sapi (execute) sapi interface `%s` not declarated\n", sapi.c_str());
 	return 415;
 }
 
@@ -235,26 +217,50 @@ void csapiserver::OnPATCH(int soc, const std::shared_ptr<crequest>& msg) const {
 	case 102: // FPM is accept message and executing now
 		printf("sapi(%s) #%ld is busy execute (%s)\n", sapi.c_str(), soc, headers.at({ "x-fiber-msg-id",14 }).trim().str().c_str());
 		break;
-	case 100: // FPM return back to pool after execute message
-		if (sapiList.find(sapi) != sapiList.end()) {
-			std::size_t num_workers = 0;
-			{
-				std::unique_lock<std::mutex> lock(syncPool);
-				/* may be ondisconnect not call, for socket number? it is bad :(. if you want, handle this situation now */
-				auto&& it = workerPool.emplace(sapi, sapi_pool());
-				it.first->second.workers.emplace(soc);
-				num_workers = it.first->second.workers.size();
-			}
-			printf("sapi (%s): #%ld came back (%s), worker-count: %ld\n", sapi.c_str(),soc, msg_id.c_str(), num_workers);
-			execNotify.notify_one();
+	case 100:
+		{
+			std::unique_lock<std::mutex> lock(syncPool);
+			taskPool.erase(msg_id);
 		}
-		else {
-			printf("sapi (connect) sapi `%s` not declarted\n", sapi.c_str());
-			::close(soc);
+		{
+			// if task delayed, release task executing counter
+			if (auto&& script = headers.find({ "x-fiber-fpm-exec",16 }); script != headers.end()) {
+				std::unique_lock<std::mutex> lock(syncPool);
+				if (auto&& it = taskDelayExec.find(script->second.trim().str()); it != taskDelayExec.end()) {
+					it->second.task_timestamp = std::time(nullptr);
+					it->second.task_executing--;
+				}
+			}
+		}
+		{
+			// FPM return back to pool after execute message
+			if (sapiList.find(sapi) != sapiList.end()) {
+				std::size_t num_workers = 0;
+				{
+					std::unique_lock<std::mutex> lock(syncPool);
+					/* may be ondisconnect not call, for socket number? it is bad :(. if you want, handle this situation now */
+					auto&& it = workerPool.emplace(sapi, sapi_pool());
+					it.first->second.workers.emplace(soc);
+					num_workers = it.first->second.workers.size();
+				}
+				printf("sapi (%s): #%ld came back (%s), worker-count: %ld\n", sapi.c_str(), soc, msg_id.c_str(), num_workers);
+				execNotify.notify_one();
+			}
+			else {
+				printf("sapi (connect) sapi `%s` not declarted\n", sapi.c_str());
+				::close(soc);
+			}
 		}
 		break;
 	}
 }
+
+
+void csapiserver::OnPOST(int soc, const std::shared_ptr<crequest>& msg) const {
+	capp::dispatch(msg);
+	OnPATCH(soc, msg);
+}
+
 
 void csapiserver::ondata(int soc) const {
 
@@ -271,6 +277,9 @@ void csapiserver::ondata(int soc) const {
 		else: i dont known :) 
 		*/
 		OnPATCH(soc, msg);
+		break;
+	case crequest::post:
+		OnPOST(soc, msg);
 		break;
 	default:
 		msg->response("SBYE", "/", 400, crequest::connect, {});

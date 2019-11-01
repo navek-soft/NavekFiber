@@ -13,7 +13,7 @@ static inline auto& msg_response(cchannel_queue::message& msg) { return std::get
 
 cchannel_queue::cchannel_queue(const std::string& name,const core::coptions& options) :
 	queueName(name),
-	queueLimitCapacity(options.at("queue-limit-capacity","0").number()),
+	queueLimitCapacity(options.at("channel-limit-capacity","0").number()),
 	queueDurability(options.at("channel-durability", "none").get()),
 	sapiExecLimit(options.at("channel-sapi-task-limit", "0").number()),
 	sapiExecTimeout(options.at("channel-sapi-request-limit", "0").number()),
@@ -138,24 +138,28 @@ void cchannel_queue::OnPUT(const cmsgid&& msg_id, const std::string&& path, cons
 				msgQueue.emplace(msg_id);
 
 				if (!sapiExecScript.proto.empty()) {
-					auto result = fiber::capp::execute(msg_id, sapiExecScript.proto, sapiExecScript.fullpathname, sapiExecLimit, sapiExecTimeout, std::move(request));
-					if (result == 202) {
-						request->response({}, 202, "Enqueued", { { "X-FIBER-MSG-ID",msg_id.str() },{ "X-FIBER-MSG-QUEUE","ASYNC-QUEUE" } });
-					}
-					else {
-						request->response({}, result, "", { { "X-FIBER-MSG-ID",msg_id.str() },{ "X-FIBER-MSG-QUEUE","ASYNC-QUEUE" } });
+					auto result = fiber::capp::execute(msg_id, sapiExecScript.proto, "/" + sapiExecScript.fullpathname, sapiExecLimit, sapiExecTimeout, std::move(request));
+					if (0 /* async mode */) {
+						if (result == 202) {
+							request->response({}, 202, "Enqueued", { { "X-FIBER-MSG-ID",msg_id.str() },{ "X-FIBER-MSG-QUEUE","ASYNC-QUEUE" } });
+						}
+						else {
+							request->response({}, result, "", { { "X-FIBER-MSG-ID",msg_id.str() },{ "X-FIBER-MSG-QUEUE","ASYNC-QUEUE" } });
+						}
+						request->disconnect();
 					}
 				}
 				else {
 					request->response({}, 202, "Enqueued", { { "X-FIBER-MSG-ID",msg_id.str() },{ "X-FIBER-MSG-QUEUE","ASYNC-QUEUE" } });
+					request->disconnect();
 				}
 			}
 		}
 		else {
 			request->response({}, 507, "Queue limit capacity exceed", { { "X-FIBER-QUEUE-LIMIT",std::to_string(queueLimitCapacity) },{ "X-FIBER-MSG-QUEUE","ASYNC-QUEUE" } });
+			request->disconnect();
 		}
 	}
-	request->disconnect();
 }
 
 
@@ -187,9 +191,15 @@ void cchannel_queue::OnPOST(const cmsgid&& msg_id, const std::string&& path, con
 				}
 			}
 			else {
-				msg_response(req_msg->second) = request;
-				msg_status(req_msg->second) |= crequest::status::complete;
-				request->response({}, 202, {}, make_headers(req_msg_id, msg_ctime(req_msg->second), msg_mtime(req_msg->second), msg_status(req_msg->second), "ASYNC-QUEUE"));
+				if (0 /* async mode */) {
+					msg_response(req_msg->second) = request;
+					msg_status(req_msg->second) |= crequest::status::complete;
+					request->response({}, 202, {}, make_headers(req_msg_id, msg_ctime(req_msg->second), msg_mtime(req_msg->second), msg_status(req_msg->second), "ASYNC-QUEUE"));
+				}
+				else {
+					msg_request(req_msg->second)->response(request->request_paload(), request->request_paload_length(),200,"", make_headers(req_msg_id, msg_ctime(req_msg->second), msg_mtime(req_msg->second), msg_status(req_msg->second), "ASYNC-QUEUE"));
+					msgPool.erase(req_msg);
+				}
 			}
 		}
 		else {

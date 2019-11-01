@@ -56,7 +56,7 @@ namespace fiber {
 		mutable std::unordered_map<std::string, delay_exec_state> taskDelayExec;
 		mutable std::unordered_map<std::string, sapi_pool> workerPool;
 		mutable std::unordered_map<cmsgid, exec_task> taskPool;
-		std::unordered_set<std::string> sapiList;
+		std::set<std::string> sapiList;
 
 		mutable std::condition_variable  execNotify;
 		std::thread				 execManager;
@@ -66,6 +66,7 @@ namespace fiber {
 
 		bool OnCONNECT(int soc,const std::shared_ptr<crequest>& msg) const;
 		void OnPATCH(int soc, const std::shared_ptr<crequest>& msg) const;
+		void OnPOST(int soc, const std::shared_ptr<crequest>& msg) const;
 	public:
 		static inline const std::string server_banner{ "csapiserver" };
 		virtual const std::string& getname() const { return server_banner; }

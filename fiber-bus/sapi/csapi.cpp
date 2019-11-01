@@ -6,7 +6,7 @@
 #include <sys/un.h>
 #include <sys/poll.h>
 #include <thread>
-#include <csignal>
+#include "../core/csignal.h"
 
 using namespace fiber;
 
@@ -41,54 +41,57 @@ int csapi::run() {
 	signal(SIGPIPE, SIG_IGN);
 
 	{
-		bool isReconnectRequired = true, isContinue = true;
+		bool isContinue = true;
 		while (isContinue) {
-			if ((isReconnectRequired && connect(sapiSocket, (struct sockaddr*) & serveraddr, (socklen_t)SUN_LEN(&serveraddr)) == 0) || errno == EISCONN) {
-				isReconnectRequired = false;
-
+			if ((connect(sapiSocket, (struct sockaddr*) & serveraddr, (socklen_t)SUN_LEN(&serveraddr)) == 0)) {
+				isContinue = false;
 				onconnect(sapiSocket, (struct sockaddr_storage&)serveraddr);
 
 				int nevents = 0;
-				while ((nevents = poll(polllist, 1, 1000)) || 1) {
+				while ((nevents = poll(polllist, 1, -1)) || 1) {
 					if (nevents > 0) {
-						if (polllist[0].revents & (POLLERR | POLLNVAL | POLLHUP)) {
-							printf("(%ld) %s%s%s\n", getpid(),
-								(polllist[0].revents & POLLERR) ? "POLLERR" : "",
-								(polllist[0].revents & POLLNVAL) ? "POLLNVAL" : "",
-								(polllist[0].revents & POLLHUP) ? "POLLHUP" : "");
-							polllist[0].revents = 0;
-							isReconnectRequired = true;
-							ondisconnect(sapiSocket);
-							break;
-						}
 						if (polllist[0].revents == POLLIN) {
 							ondata(sapiSocket);
 							polllist[0].revents = 0;
 							continue;
 						}
-						isContinue = false;
+						printf("(%ld) %s%s%s\n", getpid(),
+							(polllist[0].revents & POLLERR) ? "POLLERR" : "",
+							(polllist[0].revents & POLLNVAL) ? "POLLNVAL" : "",
+							(polllist[0].revents & POLLHUP) ? "POLLHUP" : "");
+						ondisconnect(sapiSocket);
+						polllist[0].revents = 0;
 						break;
 					}
 					else if (nevents == -1) {
 						printf("(%ld) sapi-fpm poll-error: %s (%d)\n", getpid(), strerror(errno), errno);
-						isContinue = false;
 						break;
+					}
+					else {
+						printf("(%ld) sapi-fpm poll-zero: %s (%d)\n", getpid(), strerror(errno), errno);
 					}
 				}
 			}
-			else {
-				switch (errno) {
-				case ENOENT: case ECONNREFUSED:
-					printf("(%ld) sapi-fpm reconnect-required: %s (%d)\n", getpid(), strerror(errno), errno);
-					isReconnectRequired = true;
-					std::this_thread::sleep_for(std::chrono::seconds(5));
-					printf("(%ld) sapi-fpm wait before reconnect...%d seconds.\n", getpid(), 5);
-					break;
-				default:
-					printf("(%ld) sapi-fpm connection-error: %s (%d)\n", getpid(), strerror(errno), errno);
-					isContinue = false;
-					break;
+			switch (errno) {
+			case ECONNREFUSED:
+				printf("(%ld) sapi-fpm reconnect-required: %s (%d) ... %d seconds timeout\n", getpid(), strerror(errno), errno, 5);
+				isContinue = true;
+				std::this_thread::sleep_for(std::chrono::seconds(5));
+				break;
+			case EISCONN: case ENOENT:
+				printf("(%ld) sapi-fpm reconnect-required: %s (%d) ... %d seconds timeout\n", getpid(), strerror(errno), errno, 5);
+				isContinue = true;
+				::close(sapiSocket);
+				std::this_thread::sleep_for(std::chrono::seconds(5));
+				if (sapiSocket = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0); sapiSocket <= 0) {
+					throw core::system_error(errno, __PRETTY_FUNCTION__, __LINE__);
 				}
+				polllist[0].fd = sapiSocket;
+				break;
+			default:
+				printf("(%ld) sapi-fpm connection-error: %s (%d)\n", getpid(), strerror(errno), errno);
+				isContinue = false;
+				break;
 			}
 		}
 	}
@@ -222,6 +225,7 @@ csapi::request::request(int sock) : msgSocket(sock) {
 
 csapi::request::~request() 
 { 
+	printf("%s\n", __PRETTY_FUNCTION__);
 	disconnect();
 }
 
@@ -256,7 +260,7 @@ ssize_t csapi::request::response(const payload& data, const std::string& uri, st
 	std::size_t headers_length = uri.length() + 1;
 
 	for (auto&& p : headers_list) {
-		headers_length += p.first.length() + sizeof(": ") + p.second.length() + 1 /* always zero endian data string */;
+		headers_length += p.first.length() + 2 + p.second.length() + 1 /* always zero endian data string */;
 	}
 
 	for (auto&& p : data) {
@@ -303,7 +307,7 @@ ssize_t csapi::request::response(const ci::cstringformat& data, const std::strin
 	std::size_t headers_length = uri.length() + 1;
 
 	for (auto&& p : headers_list) {
-		headers_length += p.first.length() + sizeof(": ") + p.second.length() + 1 /* always zero endian data string */;
+		headers_length += p.first.length() + 2 + p.second.length() + 1 /* always zero endian data string */;
 	}
 
 	for (auto&& p : data) {

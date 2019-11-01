@@ -10,6 +10,7 @@
 
 	[[sapi]]
 		sapi-pipe = "unix:///tmp/navekfiber-fpm"
+		sapi-engines = python,php
 
 	[[threadpool]]
 		thread-workers = 10
@@ -33,9 +34,9 @@
 
 [channels]
 	[[sample-python]]
-		channel-endpoint = sync://sample-python/task1/	# sync, async
+		channel-endpoint = async://sample-python/task1/	# sync, async
 		channel-durability = none						#,transaction, persistent
-		channel-sapi = python://sample-python-test.py	# php:// python:// lua:// | mysql:// pgsql:// json:// http:// ws://
+		channel-limit-capacity = 0						# 0 - unlimited, count of messages in queue
+		channel-sapi = python://home/irokez/projects/NavekFiber/fiber-sapi-py/sample-python-test.py	# php:// python:// lua:// | mysql:// pgsql:// json:// http:// ws://
 		channel-sapi-task-limit = 0						# number of parallel execution tasks, 0 - unlimited
 		channel-sapi-request-limit = 0					# timeout before next request execution
-		queue-limit-capacity = 0						# 0 - unlimited, count of messages in queue

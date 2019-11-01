@@ -103,6 +103,7 @@ namespace core {
 			virtual void ondisconnect(int) const = 0; /* client gone away */
 			virtual void ondata(int) const = 0; /* new data came */
 			virtual void onwrite(int) const = 0; /* ready to send */
+			virtual void onidle(uint64_t time) const = 0; /* timeout idle */
 		protected:
 			friend class cserver;
 			std::size_t			soType{ 0 };
@@ -144,6 +145,6 @@ namespace core {
 		inline void accept_udp(uint32_t events, int sock, hserver&& server) noexcept(false);
 		inline void accept_pipe(uint32_t events, int sock, hserver&& server) noexcept(false);
 		inline void accept_tcpclient(uint32_t events, int sock, hserver&& server) noexcept(false);
-		inline void accept_tcptimer(uint32_t events, int sock, hserver&& server) noexcept(false);
+		inline void accept_timer(uint32_t events, int sock, hserver&& server) noexcept(false);
 	};
 }

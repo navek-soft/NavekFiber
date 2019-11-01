@@ -13,7 +13,15 @@ namespace core {
 			for (; to > from&& std::isspace(*(to - 1)); to--) { ; }
 			return std::string(from, to);
 		}
-
+		static inline std::string implode_string(std::deque<std::string>& val, const char delimiter) {
+			std::string result;
+			for (auto&& v : val) {
+				result.append(v).append(1,delimiter);
+			}
+			if (!result.empty())
+				result.pop_back();
+			return result;
+		}
 		static inline std::deque<std::string> explode_string(const std::string& string, const std::string& delimiter, bool trim) {
 			/* explode chains */
 			std::deque<std::string> list;
@@ -163,6 +171,29 @@ std::deque<std::string> core::coption::split(const std::string& delimiter, bool 
 	return core::impl::explode_string(opt_value, delimiter, trim_values);
 }
 
+core::coption::hostport core::coption::host() const {
+	core::coption::hostport result;
+	if (!opt_value.empty()) {
+		auto&& list = core::impl::explode_string(opt_value, ":", true);
+		switch (list.size()) {
+		case 2:
+			if (list.front() != "*") {
+				result.host = list.front();
+			}
+		case 1: 
+			result.port = list.back(); 
+			break;
+		default:
+		{
+			result.port = list.back();
+			list.pop_back();
+			result.host = core::impl::implode_string(list, ':');
+		}
+		}
+		return result;
+	}
+	return {};
+}
 
 /*
 * Expand dsn string aka <proto>://<user>:<pwd>@<host>:<port></path/to/><filename>?<opt1>=<val1>&<opt2>=<val2>
