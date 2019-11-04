@@ -36,9 +36,7 @@ namespace fiber {
 		public:
 			request(int sock,uint64_t rcv_timeout,uint64_t time) : reqTime(time), reqReceiveTime(time + rcv_timeout), reqReceiveTimeOut(rcv_timeout), reqSocket(sock) { ; }
 			virtual ~request();
-			virtual type request_type() { 
-				return reqType; 
-			}
+			virtual type request_type() { return reqType;  }
 			virtual const ci::cstringview& request_uri() { return uri; }
 			virtual ssize_t request_length() { return reqLength; }
 			virtual const crequest::headers& request_headers() { return headers; }
@@ -52,6 +50,7 @@ namespace fiber {
 		};
 		time_t optReceiveTimeout{ 0 };
 		ssize_t optMaxRequestSize{ 0 };
+		int optKeepAlive{ 0 };
 		mutable std::unordered_map<int, std::shared_ptr<request>> requestsClient;
 	public:
 		std::string server_banner{ "chttpserver" };

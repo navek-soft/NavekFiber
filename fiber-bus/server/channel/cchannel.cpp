@@ -56,14 +56,14 @@ ssize_t cchannel::external_post(const std::string& url, const crequest::payload&
 }
 
 
-crequest::response_headers cchannel::make_headers(const cmsgid& msg_id, std::time_t ctime, std::time_t mtime, uint16_t status, const std::string name, const crequest::response_headers& additional, const crequest::headers& reqeaders)
+crequest::response_headers cchannel::make_headers(const cmsgid& msg_id, std::time_t ctime, std::time_t mtime, uint16_t status, const std::string banner, const crequest::response_headers& additional, const crequest::headers& reqeaders)
 {
 	tm ctm, mtm;
 	localtime_r(&ctime, &ctm);
 	localtime_r(&mtime, &mtm);
 
 	crequest::response_headers hdrslist({
-		{ "X-FIBER-MSG-QUEUE", name },
+		{ "X-FIBER-CHANNEL-QUEUE", banner },
 		{ "X-FIBER-MSG-ID",msg_id.str() },
 		{ "X-FIBER-MSG-CTIME",ci::cstringformat("%04d-%02d-%02d %02d:%02d:%02d",ctm.tm_year + 1900,ctm.tm_mon,ctm.tm_mday,ctm.tm_hour,ctm.tm_min,ctm.tm_sec).str() },
 		{ "X-FIBER-MSG-MTIME",ci::cstringformat("%04d-%02d-%02d %02d:%02d:%02d",mtm.tm_year + 1900,mtm.tm_mon,mtm.tm_mday,mtm.tm_hour,mtm.tm_min,mtm.tm_sec).str() },

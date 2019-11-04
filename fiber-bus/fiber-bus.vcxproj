@@ -93,13 +93,15 @@
     </ClCompile>
     <ClCompile Include="server\capp.cpp" />
     <ClCompile Include="server\cbroker.cpp" />
+    <ClCompile Include="server\channel\cchannel-mq.cpp" />
+    <ClCompile Include="server\channel\cchannel-simple.cpp" />
     <ClCompile Include="server\channel\cchannel-sync.cpp" />
     <ClCompile Include="server\channel\cchannel.cpp" />
     <ClCompile Include="server\config\configure.cpp" />
     <ClCompile Include="server\crequest.cpp" />
     <ClCompile Include="server\chttpserver.cpp" />
     <ClCompile Include="fiber-bus.cpp" />
-    <ClCompile Include="server\channel\cchannel-queue.cpp" />
+    <ClCompile Include="server\channel\cchannel-async.cpp" />
     <ClCompile Include="server\csapiserver.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -108,7 +110,9 @@
     <ClInclude Include="core\cini.h" />
     <ClInclude Include="sapi\cfpm.h" />
     <ClInclude Include="server\capp.h" />
-    <ClInclude Include="server\channel\cchannel-queue.h" />
+    <ClInclude Include="server\channel\cchannel-mq.h" />
+    <ClInclude Include="server\channel\cchannel-simple.h" />
+    <ClInclude Include="server\channel\cchannel-async.h" />
     <ClInclude Include="server\channel\cchannel-sync.h" />
     <ClInclude Include="server\cmemory.h" />
     <ClInclude Include="ci\cstring.h" />

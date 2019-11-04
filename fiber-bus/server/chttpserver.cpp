@@ -7,51 +7,57 @@
 #include <cstdarg>
 #include "capp.h"
 #include <netinet/tcp.h>
+#include "clog.h"
 
 using namespace fiber;
 
 chttpserver::chttpserver(const core::coptions& options)
 	: core::cserver::tcp((uint16_t)options.at("port").number(), options.at("ip","").get(), options.at("iface", "").get())
 {
-	optReceiveTimeout = (time_t)(options.at("receive-timeout", "3000").number());
-	optMaxRequestSize = (ssize_t)options.at("max-request-size", "5048576").bytes();
+	optReceiveTimeout = (time_t)(options.at("receive-timeout", "3s").seconds());
+	optMaxRequestSize = (ssize_t)options.at("query-limit", "1M").bytes();
+	optKeepAlive = (time_t)(options.at("keep-alive", "0").seconds());
+
 	set_nodelay();
 	set_reuseaddress();
 	set_reuseport();
+
 	if (optReceiveTimeout) {
 		/* set check every 500 msec */
-		set_receivetimeout(5000);
+		set_receivetimeout(optReceiveTimeout);
 	}
 }
 
 void chttpserver::onshutdown() const {
-	printf("onshutdown\n");
+	clog::log(3, "chttpserver::down\n");
 }
 
 void chttpserver::onclose(int soc) const {
 	if (auto&& cli = requestsClient.find(soc); cli != requestsClient.end()) {
+		clog::log(3, "chttpserver::client(#%ld) terminate connection\n", soc);
 		requestsClient.erase(cli);
 	}
 }
 
 void chttpserver::onconnect(int soc, const sockaddr_storage&, uint64_t time) const {
 	auto&& req = requestsClient.emplace(soc, std::shared_ptr<request>(new request(soc, optReceiveTimeout, time)));
+	clog::log(3, "chttpserver::client(#%ld) connect\n", soc);
 	if (!req.second) {
 		req.first->second.get()->reset();
 		req.first->second->update_time();
 	}
 	else {
-		int opt = 1;	setsockopt(soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof(opt));
-		opt = 30;		setsockopt(soc, IPPROTO_TCP, TCP_KEEPINTVL, &opt, sizeof(opt));
+		if (optKeepAlive > 0) {
+			int opt = 1;	
+			setsockopt(soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof(opt));
+			setsockopt(soc, IPPROTO_TCP, TCP_KEEPINTVL, &optKeepAlive, sizeof(optKeepAlive));
+		}
 	}
-	//printf("onconnect (%ld)\n", soc);
-	//struct timeval tv = { optReceiveTimeout / 1000, optReceiveTimeout % 1000 };
-	//setsockopt(soc, SOL_SOCKET, SO_RCVTIMEO, (struct timeval*) & tv, sizeof(struct timeval));
 }
 
 void chttpserver::ondisconnect(int soc) const {
-	//printf("ondisconnect (%ld)\n", soc);
 	if (auto&& cli = requestsClient.find(soc); cli != requestsClient.end()) {
+		clog::log(3, "chttpserver::client(#%ld) disconnect\n", soc);
 		requestsClient.erase(cli);
 	}
 }
@@ -74,10 +80,13 @@ void chttpserver::ondata(int soc) const {
 		cli->second->update_time();
 		if (result == 200) {
 			capp::dispatch(std::shared_ptr<fiber::crequest>(cli->second));
+			clog::log(3, "chttpserver::message(#%ld) dispatch\n", soc);
 			requestsClient.erase(cli);
 		}
 		else if (result == 202) {
-			printf("(%ld) more data\n", soc);
+			/*
+				printf("(%ld) more data\n", soc);
+			*/
 		}
 		else if (result > 299) {
 			::shutdown(soc, SHUT_RD);
@@ -87,7 +96,7 @@ void chttpserver::ondata(int soc) const {
 		}
 	}
 	else {
-		fprintf(stderr, "socket is'tn client.\n");
+		clog::log(3, "chttpserver::message(#%ld) invalid client\n", soc);
 		::close(soc);
 	}
 }
@@ -223,7 +232,6 @@ inline bool chttpserver::request::headers_parse(crequest::headers& val,size_t& p
 }
 
 chttpserver::request::~request() {
-	printf("%s\n", __PRETTY_FUNCTION__);
 	disconnect();
 }
 

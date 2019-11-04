@@ -89,11 +89,11 @@ ssize_t csapi_python::execute(ci::cstringformat& result,const std::string& msgid
 
 
 		static const std::regex re("\'");
-		std::string data("oldstdin = sys.stdin\nsys.stdin=StringIO('");
+		std::string data("oldstdin = sys.stdin\nsys.stdin=StringIO(\"\"\"");
 		for (auto&& s : payload) {
 			data.append(std::regex_replace(s.str(), re, R"(\')"));
 		}
-		data.append("')");
+		data.append("\"\"\")");
 
 		if (PyRun_SimpleString(data.c_str()))
 		{

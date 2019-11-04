@@ -4,6 +4,15 @@
 #include "../../sapi/csapi.h"
 #include <ctime>
 
+#define DEFAULT_HEADERS(size) \
+		{"X-FIBER-CHANNEL-CAPACITY",std::to_string(queueLimitCapacity)},\
+		{ "X-FIBER-CHANNEL-SIZE",std::to_string(size) },\
+		{ "X-FIBER-CHANNEL-NAME",queueName },\
+		{ "X-FIBER-CHANNEL-QUEUE",banner },
+
+#define DEFAULT_HEADERS_MSG(mid,size) \
+		{ "X-FIBER-MSG-ID",mid.str() },\
+		DEFAULT_HEADERS(size)
 
 namespace fiber {
 	class cchannel {
@@ -43,28 +52,4 @@ namespace fiber {
 		virtual ~cchannel() { ; }
 		virtual void processing(const cmsgid& msg_id, const std::string& uri, const std::shared_ptr<fiber::crequest>& msg) = 0;
 	};
-
-	
-	/*
-	class cqueue_sync : public cqueue {
-		cqueue_sync(const ::core::coptions& options) {}
-		virtual ~cqueue_sync() {}
-
-		virtual void enqueue(const cmsgid& msg_id, std::shared_ptr<fiber::crequest>& msg) { printf("cqueue_sync\n"); }
-	};
-
-	class cqueue_async_durability : public cqueue {
-		cqueue_async_durability(const core::coptions& options) {}
-		virtual ~cqueue_async_durability() {}
-
-		virtual void enqueue(const cmsgid& msg_id, std::shared_ptr<fiber::crequest>& msg) { printf("cqueue_async_durability\n"); }
-	};
-
-	class cqueue_sync_durability : public cqueue {
-		cqueue_sync_durability(const core::coptions& options);
-		virtual ~cqueue_sync_durability() {}
-
-		virtual void enqueue(const cmsgid& msg_id, std::shared_ptr<fiber::crequest>& msg) { printf("cqueue_sync_durability\n"); }
-	};
-	*/
 }

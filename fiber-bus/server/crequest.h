@@ -5,6 +5,8 @@
 #include <atomic>
 #include "../ci/cstring.h"
 
+#define _h(header) { header,sizeof(header) - 1 }
+
 namespace fiber {
 	class cmsgid {
 	private:

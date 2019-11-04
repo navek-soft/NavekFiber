@@ -3,6 +3,8 @@
 		listen = :8080
 		query-limit = 1M # 0 - unlimit, default 1048576
 		header-limit = 4K # 0 - unlimit, default 8192
+		receive-timeout = 3s # chunk receive timeout in sec
+		keep-alive = 10s # connection keep alive
 
 	[[websocket]]
 		listen = :8081
@@ -34,7 +36,9 @@
 
 [channels]
 	[[sample-python]]
-		channel-endpoint = async://sample-python/task1/	# sync, async
+		channel-endpoint = async://sample-python/task1/	# sync, async,simple,mq
+		channel-mq-mode = round-robin # round-robin, broadcast, subscribers default delivery method
+		channel-mq-subscribers-limit = 0 # limit number of subscribers 
 		channel-durability = none						#,transaction, persistent
 		channel-limit-capacity = 0						# 0 - unlimited, count of messages in queue
 		channel-sapi = python://home/irokez/projects/NavekFiber/fiber-sapi-py/sample-python-test.py	# php:// python:// lua:// | mysql:// pgsql:// json:// http:// ws://
