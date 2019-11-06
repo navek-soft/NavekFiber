@@ -5,7 +5,7 @@
 #include <memory>
 #include <tuple>
 #include <ctime>
-#include <shared_mutex>
+#include <mutex>
 
 namespace fiber {
 	class cchannel_sync : virtual public cchannel {
@@ -15,7 +15,7 @@ namespace fiber {
 		virtual void OnPUT(const cmsgid&& msg_id, const std::string&& path, const std::shared_ptr<fiber::crequest>& request);
 		virtual void OnHEAD(const cmsgid&& msg_id, const std::string&& path, const std::shared_ptr<fiber::crequest>& request);
 	public:
-		using message = std::tuple<uint16_t, std::time_t, std::time_t, std::shared_ptr<fiber::crequest>, std::shared_ptr<fiber::crequest>>;
+		using message = std::tuple<uint16_t, std::time_t, std::time_t, std::shared_ptr<fiber::crequest>>;
 
 		cchannel_sync(const std::string& name, const core::coptions& options);
 		virtual ~cchannel_sync();
@@ -29,7 +29,7 @@ namespace fiber {
 		std::size_t					sapiExecTimeout{ 0 };
 		core::coption::dsn_params	sapiExecScript{};
 		std::unordered_map<cmsgid, message>	msgPool;
-		std::shared_mutex		msgSync;
+		std::mutex		msgSync;
 		std::unique_ptr<csapi>	queueSapi;
 	};
 }

@@ -5,7 +5,7 @@
 #include <memory>
 #include <tuple>
 #include <ctime>
-#include <shared_mutex>
+#include <mutex>
 
 namespace fiber {
 	class cchannel_async : virtual public cchannel {
@@ -31,7 +31,7 @@ namespace fiber {
 		core::coption::dsn_params	sapiExecScript{};
 		std::unordered_map<cmsgid, message>	msgPool;
 		//std::queue<cmsgid>		msgQueue;
-		std::shared_mutex		msgSync;
+		std::mutex		msgSync;
 		std::unique_ptr<csapi>	queueSapi;
 	};
 }

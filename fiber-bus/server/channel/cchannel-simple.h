@@ -5,7 +5,7 @@
 #include <memory>
 #include <tuple>
 #include <ctime>
-#include <shared_mutex>
+#include <mutex>
 
 namespace fiber {
 	class cchannel_simple : virtual public cchannel {
@@ -28,6 +28,6 @@ namespace fiber {
 		std::string					queueDurability{};
 		std::unordered_map<cmsgid, message>	msgPool;
 		std::queue<cmsgid>		msgQueue;
-		std::shared_mutex		msgSync;
+		std::mutex		msgSync;
 	};
 }

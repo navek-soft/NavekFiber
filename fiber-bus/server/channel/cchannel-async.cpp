@@ -44,7 +44,7 @@ void cchannel_async::OnGET(const cmsgid&& msg_id, const std::string&& path, cons
 	auto&& headers = request->request_headers();
 	auto&& req_msg = msgPool.end();
 	{
-		std::shared_lock<std::shared_mutex> lock(msgSync);
+		std::unique_lock<std::mutex> lock(msgSync);
 		if (auto&& it_id = headers.find(_h("x-fiber-msg-id")); it_id != headers.end()) {
 			cmsgid req_msg_id(it_id->second.trim());
 			if (req_msg = msgPool.find(req_msg_id); req_msg == msgPool.end()) {
@@ -57,11 +57,7 @@ void cchannel_async::OnGET(const cmsgid&& msg_id, const std::string&& path, cons
 				if ((result = request->response(response->request_paload(), response->request_paload_length(), 200, {},
 					make_headers(req_msg_id, msg_ctime(req_msg->second), msg_mtime(req_msg->second), msg_status(req_msg->second), banner, { DEFAULT_HEADERS(msgPool.size()) }, response->request_headers()))) == 200) {
 
-					msgSync.unlock_shared();
-					msgSync.lock();
 					msgPool.erase(req_msg);
-					msgSync.unlock();
-					msgSync.lock_shared();
 				}
 				else {
 					clog::err(0, "%s(%s)::get: invalid response sending (%ld)\n", banner.c_str(), queueName.c_str(), result);
@@ -110,7 +106,7 @@ void cchannel_async::OnHEAD(const cmsgid&& msg_id, const std::string&& path, con
 	if (auto&& it_id = headers.find(_h("x-fiber-msg-id")); it_id != headers.end()) {
 		cmsgid req_msg_id(it_id->second.trim());
 		
-		std::shared_lock<std::shared_mutex> lock(msgSync);
+		std::unique_lock<std::mutex> lock(msgSync);
 
 		if (auto&& req_msg = msgPool.find(req_msg_id); req_msg != msgPool.end()) {
 			tm ctm, mtm;
@@ -134,7 +130,7 @@ void cchannel_async::OnHEAD(const cmsgid&& msg_id, const std::string&& path, con
 
 void cchannel_async::OnPUT(const cmsgid&& msg_id, const std::string&& path, const std::shared_ptr<fiber::crequest>& request) {
 
-	std::unique_lock<std::shared_mutex> lock(msgSync);
+	std::unique_lock<std::mutex> lock(msgSync);
 	if (!queueLimitCapacity || (queueLimitCapacity < msgPool.size())) {
 		if (msgPool.emplace(msg_id, message(crequest::status::accepted | crequest::status::enqueued, std::time(nullptr), std::time(nullptr), request, {})).second) {
 			auto result = fiber::capp::execute(msg_id, sapiExecScript.proto, "/" + sapiExecScript.fullpathname, sapiExecLimit, sapiExecTimeout, std::move(request));
@@ -159,7 +155,7 @@ void cchannel_async::OnPOST(const cmsgid&& msg_id, const std::string&& path, con
 	if (auto&& it_id = headers.find(_h("x-fiber-msg-id")); it_id != headers.end()) {
 		cmsgid req_msg_id(it_id->second.trim());
 
-		std::shared_lock<std::shared_mutex> lock(msgSync);
+		std::unique_lock<std::mutex> lock(msgSync);
 
 		if (auto&& req_msg = msgPool.find(req_msg_id); req_msg != msgPool.end()) {
 			msg_mtime(req_msg->second) = std::time(nullptr);
@@ -171,11 +167,7 @@ void cchannel_async::OnPOST(const cmsgid&& msg_id, const std::string&& path, con
 						{ DEFAULT_HEADERS(msgPool.size()) }, msg_request(req_msg->second)->request_headers())) == 200) {
 					request->response({}, 200, {},
 						make_headers(req_msg_id, msg_ctime(req_msg->second), msg_mtime(req_msg->second), msg_status(req_msg->second), banner));
-					msgSync.unlock_shared();
-					msgSync.lock();
 					msgPool.erase(req_msg);
-					msgSync.unlock();
-					msgSync.lock_shared();
 				}
 				else {
 					msg_response(req_msg->second) = request;

@@ -40,7 +40,7 @@ void cchannel_sync::processing(const cmsgid& msg_id, const std::string& uri, con
 void cchannel_sync::OnHEAD(const cmsgid&& msg_id, const std::string&& path, const std::shared_ptr<fiber::crequest>& request) {
 	std::size_t size = 0;
 	{
-		std::shared_lock<std::shared_mutex> lock(msgSync);
+		std::unique_lock<std::mutex> lock(msgSync);
 		if (!msgPool.empty()) {
 			size = msgPool.size();
 		}
@@ -57,9 +57,9 @@ void cchannel_sync::OnHEAD(const cmsgid&& msg_id, const std::string&& path, cons
 void cchannel_sync::OnPUT(const cmsgid&& msg_id, const std::string&& path, const std::shared_ptr<fiber::crequest>& request) {
 
 	/* emplace new msg request */
-	std::unique_lock<std::shared_mutex> lock(msgSync);
+	std::unique_lock<std::mutex> lock(msgSync);
 	if (!queueLimitCapacity || (queueLimitCapacity < msgPool.size())) {
-		if (msgPool.emplace(msg_id, message(crequest::status::accepted | crequest::status::enqueued | crequest::status::pushed, std::time(nullptr), std::time(nullptr), request, {})).second) {
+		if (msgPool.emplace(msg_id, message(crequest::status::accepted | crequest::status::enqueued | crequest::status::pushed, std::time(nullptr), std::time(nullptr), request)).second) {
 
 			auto result = fiber::capp::execute(msg_id, sapiExecScript.proto, "/" + sapiExecScript.fullpathname, sapiExecLimit, sapiExecTimeout, std::move(request));
 
@@ -89,7 +89,7 @@ void cchannel_sync::OnPOST(const cmsgid&& msg_id, const std::string&& path, cons
 	if (auto&& it_id = headers.find(_h("x-fiber-msg-id")); it_id != headers.end()) {
 		cmsgid req_msg_id(it_id->second.trim());
 
-		std::shared_lock<std::shared_mutex> lock(msgSync);
+		std::unique_lock<std::mutex> lock(msgSync);
 
 		if (auto&& req_msg = msgPool.find(req_msg_id); req_msg != msgPool.end()) {
 			

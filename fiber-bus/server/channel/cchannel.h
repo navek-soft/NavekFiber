@@ -38,7 +38,6 @@ namespace fiber {
 				break;
 			}
 		}
-
 		virtual void OnGET(const cmsgid&& msg_id, const std::string&& path, const std::shared_ptr<fiber::crequest>& request) { request->response({}, 405, {}); request->disconnect(); }
 		virtual void OnPOST(const cmsgid&& msg_id, const std::string&& path, const std::shared_ptr<fiber::crequest>& request) { request->response({}, 405, {}); request->disconnect(); }
 		virtual void OnPUT(const cmsgid&& msg_id, const std::string&& path, const std::shared_ptr<fiber::crequest>& request) { request->response({}, 405, {}); request->disconnect(); }
