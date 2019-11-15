@@ -40,6 +40,15 @@ void csapiserver::onshutdown() const {
 }
 
 void csapiserver::onclose(int soc) const {
+	std::unique_lock<std::mutex> lock(syncPool);
+	if (auto&& task = taskExecute.find(soc); task != taskExecute.end()) {
+		clog::log(0, "( sapi:server ) close connection #%ld\n", soc);
+		task->second.second->response(ci::cstringformat(), 499, "SAPI execution error");
+	}
+	else {
+		clog::log(0, "( sapi:server ) close connection #%ld\n", soc);
+	}
+	taskExecute.erase(soc);
 }
 
 void csapiserver::onconnect(int soc, const sockaddr_storage&, uint64_t time) const {
@@ -48,7 +57,16 @@ void csapiserver::onconnect(int soc, const sockaddr_storage&, uint64_t time) con
 }
 
 void csapiserver::ondisconnect(int soc) const {
-	clog::log(0, "( sapi:server ) disconnect client #%ld\n", soc);
+	std::unique_lock<std::mutex> lock(syncPool);
+	if (auto&& task = taskExecute.find(soc); task != taskExecute.end()) {
+		clog::log(0, "( sapi:server ) sapi process is down #%ld\n", soc);
+		task->second.second->response(ci::cstringformat(), 499, "SAPI execution error");
+		task->second.second->disconnect();
+	}
+	else {
+		clog::log(0, "( sapi:server ) disconnect client #%ld\n", soc);
+	}
+	taskExecute.erase(soc);
 }
 
 void csapiserver::onidle(uint64_t time) const {
@@ -131,6 +149,9 @@ repeat_with_next_socket:
 					}
 					/* task success send to execute, remove it from pool */
 					clog::log(0, "( sapi:server:%s ) execute %s(%s)\n", pool.first.c_str(), task->second.execscript.c_str(),msg_id.str().c_str());
+
+					taskExecute.emplace(so, std::make_pair(msg_id, task->second.request));
+
 					taskPool.erase(task);
 				}
 				else {
@@ -221,6 +242,8 @@ void csapiserver::OnPATCH(int soc, const std::shared_ptr<crequest>& msg) const {
 		{
 			std::unique_lock<std::mutex> lock(syncPool);
 			taskPool.erase(msg_id);
+			taskExecute.erase(soc);
+			//taskExecute.emplace(so, std::make_pair(msg_id, task->second.request));
 		}
 		{
 			// if task delayed, release task executing counter

@@ -56,6 +56,7 @@ namespace fiber {
 		mutable std::unordered_map<std::string, delay_exec_state> taskDelayExec;
 		mutable std::unordered_map<std::string, sapi_pool> workerPool;
 		mutable std::unordered_map<cmsgid, exec_task> taskPool;
+		mutable std::unordered_map<int, std::pair<cmsgid, std::shared_ptr<crequest>>> taskExecute;
 		std::set<std::string> sapiList;
 
 		mutable std::condition_variable  execNotify;

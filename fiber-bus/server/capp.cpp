@@ -5,8 +5,10 @@
 #include "../core/coption.h"
 #include "../core/ccmdline.h"
 #include "../core/cini.h"
-#include "channel/cchannel-queue.h"
+#include "channel/cchannel-mq.h"
 #include "channel/cchannel-sync.h"
+#include "channel/cchannel-async.h"
+#include "channel/cchannel-simple.h"
 #include "csapiserver.h"
 #include "clog.h"
 #include "../core/cexcept.h"
@@ -76,7 +78,16 @@ int capp::run(int argc, char* argv[])
 			for (auto&& ch : options_channels) {
 				auto&& channel_type = ch.second.at("channel-endpoint-type").get();
 				if (channel_type == "async") {
-					esbBroker->emplace(ch.second.at("channel-endpoint-url").get(), std::shared_ptr<fiber::cchannel>(new fiber::cchannel_queue(ch.first, ch.second)));
+					esbBroker->emplace(ch.second.at("channel-endpoint-url").get(), std::shared_ptr<fiber::cchannel>(new fiber::cchannel_async(ch.first, ch.second)));
+				}
+				else if (channel_type == "sync") {
+					esbBroker->emplace(ch.second.at("channel-endpoint-url").get(), std::shared_ptr<fiber::cchannel>(new fiber::cchannel_sync(ch.first, ch.second)));
+				}
+				else if (channel_type == "mq") {
+					esbBroker->emplace(ch.second.at("channel-endpoint-url").get(), std::shared_ptr<fiber::cchannel>(new fiber::cchannel_mq(ch.first, ch.second)));
+				}
+				else if (channel_type == "simple") {
+					esbBroker->emplace(ch.second.at("channel-endpoint-url").get(), std::shared_ptr<fiber::cchannel>(new fiber::cchannel_simple(ch.first, ch.second)));
 				}
 			}
 			/* initialize sapi server */

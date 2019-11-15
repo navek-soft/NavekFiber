@@ -10,8 +10,12 @@
 
 using namespace fiber;
 
+static int* ptrSocket = nullptr;
+
 csapi::csapi(const core::coption& connection_string) {
 	sapiConnection = connection_string.dsn();
+
+	ptrSocket = &sapiSocket;
 
 	if (sapiConnection.proto == "file" || sapiConnection.proto == "unix") {
 		core::system_error(0, "protocol  not supported", __PRETTY_FUNCTION__, __LINE__);
@@ -21,6 +25,7 @@ csapi::csapi(const core::coption& connection_string) {
 csapi::~csapi() 
 { 
 	if (sapiSocket > 0) {
+		ptrSocket = nullptr;
 		::close(sapiSocket);
 	}
 }
@@ -39,6 +44,14 @@ int csapi::run() {
 	}
 	polllist[0].fd = sapiSocket;
 	signal(SIGPIPE, SIG_IGN);
+
+	signal(SIGSEGV, [](int) {
+		if (ptrSocket && *ptrSocket) {
+			::close(*ptrSocket);
+		}
+		printf("SIGSEGV: handle. exit.");
+		exit(1);
+	});
 
 	{
 		bool isContinue = true;

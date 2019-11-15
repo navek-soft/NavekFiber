@@ -80,51 +80,56 @@ void csapi_python::OnPUT(csapi::request& msg) {
 
 ssize_t csapi_python::execute(ci::cstringformat& result,const std::string& msgid, const std::string& method, const std::string& url, const std::string& script, const crequest::payload& payload) {
 
-	if (!Py_IsInitialized()) 
-		Py_Initialize();
+	try {
+		//if (!Py_IsInitialized())
+		//Py_Initialize();
 
-	if (FILE* fd = fopen(script.c_str(), "r"); fd != NULL) {
+		if (FILE* fd = fopen(script.c_str(), "r"); fd != NULL) {
 
-		PyRun_SimpleString("import sys\nfrom io import StringIO\nclass StdoutCatcher:\n	def __init__(self):\n		self.data = ''\n	def write(self, stuff):\n		self.data = self.data + stuff\n	def flush(self):\n		self.data=self.data\ncatcher = StdoutCatcher()\noldstdout = sys.stdout\nsys.stdout = catcher");
+			PyRun_SimpleString("import sys\nfrom io import StringIO\nclass StdoutCatcher:\n	def __init__(self):\n		self.data = ''\n	def write(self, stuff):\n		self.data = self.data + stuff\n	def flush(self):\n		self.data=self.data\ncatcher = StdoutCatcher()\noldstdout = sys.stdout\nsys.stdout = catcher");
 
 
-		static const std::regex re("\'");
-		std::string data("oldstdin = sys.stdin\nsys.stdin=StringIO(\"\"\"");
-		for (auto&& s : payload) {
-			data.append(std::regex_replace(s.str(), re, R"(\')"));
+			static const std::regex re("\'");
+			std::string data("oldstdin = sys.stdin\nsys.stdin=StringIO(\"\"\"");
+			for (auto&& s : payload) {
+				data.append(std::regex_replace(s.str(), re, R"(\')"));
+			}
+			data.append("\"\"\")");
+
+			if (PyRun_SimpleString(data.c_str()))
+			{
+				//Py_Finalize();
+				return 404;
+			}
+
+			PyObject* m = PyImport_AddModule("__main__");
+			if (PyRun_SimpleFileEx(fd, script.c_str(), 1))
+			{
+				//Py_Finalize();
+				return 400;
+			}
+			int code = 499;
+			if (PyObject* catcher = PyObject_GetAttrString(m, "catcher"); catcher) {
+				if (PyObject* output = PyObject_GetAttrString(catcher, "data"); output) {
+					if (PyObject* decoded = PyUnicode_AsEncodedString(output, "utf-8", "ERROR"); decoded) {
+						result.append(PyBytes_AS_STRING(decoded), PyBytes_GET_SIZE(decoded));
+						Py_XDECREF(decoded);
+					}
+					Py_XDECREF(output);
+					code = 200;
+				}
+				Py_XDECREF(catcher);
+			}
+			PyRun_SimpleString("sys.stdin = oldstdin\nsys.stdout = oldstdout\n");
+			//Py_Finalize();
+			return code;
 		}
-		data.append("\"\"\")");
 
-		if (PyRun_SimpleString(data.c_str()))
-		{
-			Py_Finalize();
-			return 404;
-		}
-
-		PyObject* m = PyImport_AddModule("__main__");
-		if (PyRun_SimpleFileEx(fd, script.c_str(),1))
-		{
-			Py_Finalize();
-			return 400;
-		}
-
-		PyObject* catcher = PyObject_GetAttrString(m, "catcher");
-		PyObject* output = PyObject_GetAttrString(catcher, "data");
-		PyObject* decoded = PyUnicode_AsEncodedString(output, "utf-8", "ERROR");
-
-		result.append(PyBytes_AS_STRING(decoded), PyBytes_GET_SIZE(decoded));
-
-		Py_XDECREF(decoded);
-		Py_XDECREF(catcher);
-		Py_XDECREF(output);
-
-		PyRun_SimpleString("sys.stdin = oldstdin\nsys.stdout = oldstdout\n");
-
-		Py_Finalize();
-		return 200;
+		//Py_Finalize();
 	}
-
-	Py_Finalize();
+	catch (...) {
+		printf("csapi_python: exception(%s).\n", "internal python error");
+	}
 	return 404;
 
 }
