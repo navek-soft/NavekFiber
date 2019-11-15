@@ -135,6 +135,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="channel-queue.ebnf" />
+    <None Include="ClassDiagram.cd" />
     <None Include="fiber.config.sample" />
   </ItemGroup>
   <ItemGroup>

@@ -14,7 +14,7 @@ using namespace core;
 
 void cserver::emplace_tcp(const std::shared_ptr<cserver::base>& srv) noexcept(false) {
 	auto&& server = srv.get()->get<tcp>();
-	if (int sock = socket(AF_INET, (int)server.soType | SOCK_NONBLOCK, (int)server.soProtocol); sock > 0) {
+	if (int sock = socket(AF_INET, (int)server.soType | SOCK_NONBLOCK | SOCK_CLOEXEC, (int)server.soProtocol); sock > 0) {
 		try {
 			/* options adjust */
 			if (server.flagReuseAddress && setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &server.flagReuseAddress, sizeof(server.flagReuseAddress)) < 0)
@@ -110,7 +110,7 @@ void cserver::emplace_tcp(const std::shared_ptr<cserver::base>& srv) noexcept(fa
 void cserver::emplace_udp(const std::shared_ptr<cserver::base>& srv) noexcept(false) {
 	auto&& server = srv.get()->get<udp>();
 
-	if (int sock = socket(AF_INET, (int)server.soType | SOCK_NONBLOCK, (int)server.soProtocol); sock > 0) {
+	if (int sock = socket(AF_INET, (int)server.soType | SOCK_NONBLOCK | SOCK_CLOEXEC, (int)server.soProtocol); sock > 0) {
 		try {
 			/* options adjust */
 			if (server.flagReuseAddress && setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &server.flagReuseAddress, sizeof(server.flagReuseAddress)) < 0)

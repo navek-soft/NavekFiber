@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<DirectedGraph xmlns="http://schemas.microsoft.com/vs/2009/dgml">
+  <Nodes>
+    <Node Id="63a68ff8-e2ef-40c9-b25f-cfc1ebb86782" Bounds="-697.44085054932,-295.285712841747,114.75,57.96" Group="Expanded" Label="Новая группа" LayoutSettings="List" UseManualLocation="True" />
+    <Node Id="72d12624-fc8c-488e-ad9b-48dcf902a7b61" Bounds="-682.284181037111,-269.332809163774,84.4366666666667,25.96" Label="Новый узел" />
+    <Node Id="f0005785-7943-4200-bb87-b22271b23d421" Bounds="-682.287188154867,-207.278615818174,84.4366666666667,25.96" Label="Новый узел" UseManualLocation="True" />
+  </Nodes>
+  <Links>
+    <Link Source="63a68ff8-e2ef-40c9-b25f-cfc1ebb86782" Target="72d12624-fc8c-488e-ad9b-48dcf902a7b61" Category="Contains" />
+    <Link Source="72d12624-fc8c-488e-ad9b-48dcf902a7b61" Target="f0005785-7943-4200-bb87-b22271b23d421" Bounds="-645.792318856271,-323.182796020508,12.0284726462141,186.732884766903" />
+  </Links>
+  <Categories>
+    <Category Id="Contains" Label="Содержит" Description="Указывает, содержит ли источник связи целевой объект" CanBeDataDriven="False" CanLinkedNodesBeDataDriven="True" IncomingActionLabel="Содержится в" IsContainment="True" OutgoingActionLabel="Содержит" />
+  </Categories>
+  <Properties>
+    <Property Id="Bounds" DataType="System.Windows.Rect" />
+    <Property Id="CanBeDataDriven" Label="CanBeDataDriven" Description="CanBeDataDriven" DataType="System.Boolean" />
+    <Property Id="CanLinkedNodesBeDataDriven" Label="CanLinkedNodesBeDataDriven" Description="CanLinkedNodesBeDataDriven" DataType="System.Boolean" />
+    <Property Id="Group" Label="Группа" Description="Отображать узел как группу" DataType="Microsoft.VisualStudio.GraphModel.GraphGroupStyle" />
+    <Property Id="IncomingActionLabel" Label="IncomingActionLabel" Description="IncomingActionLabel" DataType="System.String" />
+    <Property Id="IsContainment" DataType="System.Boolean" />
+    <Property Id="Label" Label="Метка" Description="Отображаемая метка аннотируемого объекта" DataType="System.String" />
+    <Property Id="LayoutSettings" DataType="Microsoft.VisualStudio.Diagrams.View.GroupLayoutStyle" />
+    <Property Id="OutgoingActionLabel" Label="OutgoingActionLabel" Description="OutgoingActionLabel" DataType="System.String" />
+    <Property Id="UseManualLocation" DataType="System.Boolean" />
+  </Properties>
+</DirectedGraph>
