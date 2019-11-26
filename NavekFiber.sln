@@ -1,11 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29403.142
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.779
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fiber-bus", "fiber-bus\fiber-bus.vcxproj", "{391DC8BE-5095-40D8-B7D6-92FE0CD38D68}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fiber-sapi-py", "fiber-sapi-py\fiber-sapi-py.vcxproj", "{EB84091D-E7BD-4FBC-B478-8881D8A41817}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fiber-sapi-py-2", "fiber-sapi-py-2\fiber-sapi-py-2.vcxproj", "{D62693A3-DC9C-4797-B91A-1E96C6E16EC8}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fiber-sapi-php", "fiber-sapi-php\fiber-sapi-php.vcxproj", "{9394BCFD-679A-4042-97DB-5B65B60E261C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -67,6 +71,38 @@ Global
 		{EB84091D-E7BD-4FBC-B478-8881D8A41817}.Release|x86.ActiveCfg = Release|x86
 		{EB84091D-E7BD-4FBC-B478-8881D8A41817}.Release|x86.Build.0 = Release|x86
 		{EB84091D-E7BD-4FBC-B478-8881D8A41817}.Release|x86.Deploy.0 = Release|x86
+		{D62693A3-DC9C-4797-B91A-1E96C6E16EC8}.Debug|ARM.ActiveCfg = Debug|ARM
+		{D62693A3-DC9C-4797-B91A-1E96C6E16EC8}.Debug|ARM.Build.0 = Debug|ARM
+		{D62693A3-DC9C-4797-B91A-1E96C6E16EC8}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{D62693A3-DC9C-4797-B91A-1E96C6E16EC8}.Debug|ARM64.Build.0 = Debug|ARM64
+		{D62693A3-DC9C-4797-B91A-1E96C6E16EC8}.Debug|x64.ActiveCfg = Debug|x64
+		{D62693A3-DC9C-4797-B91A-1E96C6E16EC8}.Debug|x64.Build.0 = Debug|x64
+		{D62693A3-DC9C-4797-B91A-1E96C6E16EC8}.Debug|x86.ActiveCfg = Debug|x86
+		{D62693A3-DC9C-4797-B91A-1E96C6E16EC8}.Debug|x86.Build.0 = Debug|x86
+		{D62693A3-DC9C-4797-B91A-1E96C6E16EC8}.Release|ARM.ActiveCfg = Release|ARM
+		{D62693A3-DC9C-4797-B91A-1E96C6E16EC8}.Release|ARM.Build.0 = Release|ARM
+		{D62693A3-DC9C-4797-B91A-1E96C6E16EC8}.Release|ARM64.ActiveCfg = Release|ARM64
+		{D62693A3-DC9C-4797-B91A-1E96C6E16EC8}.Release|ARM64.Build.0 = Release|ARM64
+		{D62693A3-DC9C-4797-B91A-1E96C6E16EC8}.Release|x64.ActiveCfg = Release|x64
+		{D62693A3-DC9C-4797-B91A-1E96C6E16EC8}.Release|x64.Build.0 = Release|x64
+		{D62693A3-DC9C-4797-B91A-1E96C6E16EC8}.Release|x86.ActiveCfg = Release|x86
+		{D62693A3-DC9C-4797-B91A-1E96C6E16EC8}.Release|x86.Build.0 = Release|x86
+		{9394BCFD-679A-4042-97DB-5B65B60E261C}.Debug|ARM.ActiveCfg = Debug|ARM
+		{9394BCFD-679A-4042-97DB-5B65B60E261C}.Debug|ARM.Build.0 = Debug|ARM
+		{9394BCFD-679A-4042-97DB-5B65B60E261C}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{9394BCFD-679A-4042-97DB-5B65B60E261C}.Debug|ARM64.Build.0 = Debug|ARM64
+		{9394BCFD-679A-4042-97DB-5B65B60E261C}.Debug|x64.ActiveCfg = Debug|x64
+		{9394BCFD-679A-4042-97DB-5B65B60E261C}.Debug|x64.Build.0 = Debug|x64
+		{9394BCFD-679A-4042-97DB-5B65B60E261C}.Debug|x86.ActiveCfg = Debug|x86
+		{9394BCFD-679A-4042-97DB-5B65B60E261C}.Debug|x86.Build.0 = Debug|x86
+		{9394BCFD-679A-4042-97DB-5B65B60E261C}.Release|ARM.ActiveCfg = Release|ARM
+		{9394BCFD-679A-4042-97DB-5B65B60E261C}.Release|ARM.Build.0 = Release|ARM
+		{9394BCFD-679A-4042-97DB-5B65B60E261C}.Release|ARM64.ActiveCfg = Release|ARM64
+		{9394BCFD-679A-4042-97DB-5B65B60E261C}.Release|ARM64.Build.0 = Release|ARM64
+		{9394BCFD-679A-4042-97DB-5B65B60E261C}.Release|x64.ActiveCfg = Release|x64
+		{9394BCFD-679A-4042-97DB-5B65B60E261C}.Release|x64.Build.0 = Release|x64
+		{9394BCFD-679A-4042-97DB-5B65B60E261C}.Release|x86.ActiveCfg = Release|x86
+		{9394BCFD-679A-4042-97DB-5B65B60E261C}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
